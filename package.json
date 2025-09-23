@@ -1,7 +1,6 @@
 {
   "name": "doc_to_quiz",
   "homepage": "https://md-afan.github.io/QuizGen_AI/",
-  "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
