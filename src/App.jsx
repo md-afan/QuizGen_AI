@@ -167,11 +167,10 @@ function App() {
                   <a
                     href={developer.github}
                     target="_blank"
-                    rel="noreferrer"
-                    className="bg-white text-gray-800 border-2 border-gray-200 px-8 py-4 rounded-2xl font-semibold hover:border-blue-300 hover:shadow-lg transition-all duration-200 flex items-center gap-3"
+                    rel=""
+                    className=""
                   >
-                    <Github className="w-5 h-5" />
-                    View Code
+                    
                   </a>
                 </div>
 
