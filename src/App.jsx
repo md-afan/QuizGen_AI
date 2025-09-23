@@ -1,188 +1,363 @@
-import { useState } from "react";
+// src/App.jsx
+import { useState, useEffect } from "react";
+import {
+  Brain,
+  Upload,
+  FileText,
+  Code,
+  Star,
+  Zap,
+  Users,
+  Rocket,
+  ChevronRight,
+  Play,
+  Github,
+  Sparkles,
+} from "lucide-react";
+
 import DocumentUpload from "./components/DocumentUpload.jsx";
 import TextInput from "./components/TextInput.jsx";
 import QuizGenerator from "./components/QuizGenerator.jsx";
 import QuizPlayer from "./components/QuizPlayer.jsx";
 import QuizResults from "./components/QuizResults.jsx";
-import { Brain, Upload, FileText, Code, Star } from "lucide-react";
+
+/**
+ * App.jsx
+ * - Adds a DeveloperCard feature (name + image + role + contact) highlighted in Hero and Footer
+ * - Keeps quiz flow: home -> quiz creation -> quiz play -> results
+ */
 
 function App() {
+  const [currentView, setCurrentView] = useState("home"); // "home" | "quiz"
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Quiz state
   const [docText, setDocText] = useState("");
   const [quiz, setQuiz] = useState([]);
   const [quizResults, setQuizResults] = useState(null);
-  const [numQuestions, setNumQuestions] = useState(5);
-  const [activeTab, setActiveTab] = useState("upload");
-  const [currentView, setCurrentView] = useState("home"); // "home", "quiz"
+  const [numQuestions, setNumQuestions] = useState(10);
+  const [activeTab, setActiveTab] = useState("upload"); // "upload" | "text"
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Developer info (update image & contact as you wish)
+  const developer = {
+    name: "MD AFAN",
+    role: "Full-Stack Developer | AI",
+    image: "https://media.licdn.com/dms/image/v2/D4E03AQEn1n9gWNmmIg/profile-displayphoto-scale_400_400/B4EZlXYUwTIQAk-/0/1758107619415?e=1761782400&v=beta&t=fOuysMiYsJu8t4lByc1UYil55PbNL1dGvqhTdZzfcQs", // placeholder avatar; replace with your image URL
+    email: "mdafan00094@gmail.com",
+    github: "https://github.com/md-afan",
+    bio: "Building AI-powered learning tools and educational UIs. Passionate about accessible edtech and clean UI."
+  };
+
+  // Start quiz flow — ensures active tab is set and navigates to quiz view
+  const handleStart = (tab = "upload") => {
+    setActiveTab(tab);
+    setCurrentView("quiz");
+  };
 
   const handleQuizComplete = (results) => {
     const resultsWithPercentage = {
       ...results,
-      percentage: Math.round((results.score / results.total) * 100)
+      percentage: results.total ? Math.round((results.score / results.total) * 100) : 0,
     };
     setQuizResults(resultsWithPercentage);
   };
 
   const handleNewQuiz = () => {
+    setDocText("");
     setQuiz([]);
     setQuizResults(null);
-    setDocText("");
+    setNumQuestions(10);
+    setActiveTab("upload");
     setCurrentView("home");
   };
 
-  const handleStartQuiz = () => {
-    setCurrentView("quiz");
-  };
-
-  // Homepage View
+  // HOME VIEW
   if (currentView === "home") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-100">
-        {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
-          <div className="max-w-6xl mx-auto px-4 py-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 rounded-xl">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        {/* Navigation */}
+        <nav
+          className={`fixed w-full z-50 transition-all duration-300 ${
+            isScrolled ? "bg-white/90 backdrop-blur-md shadow-lg" : "bg-transparent"
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center py-4">
+              <div className="flex items-center space-x-3">
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-2xl shadow-lg">
                   <Brain className="w-8 h-8 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     QuizGen AI
                   </h1>
-                  <p className="text-sm text-gray-600">Powered by Gemini 2.0 Flash</p>
+                  <p className="text-xs text-gray-600">Powered by Gemini 2.0</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-600">Developed by</p>
-                <p className="font-semibold text-blue-600">MD AFAN</p>
+
+              <div className="hidden md:flex items-center space-x-8">
+                <a href="#features" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">Features</a>
+                <a href="#how-it-works" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">How It Works</a>
+                <a href="#technology" className="text-gray-700 hover:text-blue-600 transition-colors font-medium">Technology</a>
+              </div>
+
+              <div className="flex items-center gap-4">
+                {/* <a
+                  href={developer.github}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hidden md:inline-flex items-center gap-2 text-sm text-gray-700 hover:text-blue-600"
+                >
+                  <Github className="w-4 h-4" /> View Code
+                </a> */}
+
+                <button
+                  type="button"
+                  onClick={() => handleStart("upload")}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Get Started
+                </button>
               </div>
             </div>
           </div>
-        </header>
+        </nav>
 
         {/* Hero Section */}
-        <section className="max-w-6xl mx-auto px-4 py-12 text-center">
-          <div className="max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
-              <Star className="w-4 h-4" />
-              AI-Powered Quiz Generator
-            </div>
-            <h1 className="text-5xl font-bold text-gray-900 mb-6">
-              Transform Your Content into
-              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent"> Interactive Quizzes</span>
-            </h1>
-            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              Upload documents or paste text to instantly generate intelligent quizzes using Google's Gemini 2.0 Flash AI. 
-              Perfect for educators, students, and content creators.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <button
-                onClick={() => { setActiveTab("upload"); handleStartQuiz(); }}
-                className="flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
-              >
-                <Upload className="w-5 h-5" />
-                Upload Document
-              </button>
-              <button
-                onClick={() => { setActiveTab("text"); handleStartQuiz(); }}
-                className="flex items-center gap-3 bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-8 py-4 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl"
-              >
-                <FileText className="w-5 h-5" />
-                Paste Text
-              </button>
-            </div>
-          </div>
+        <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid lg:grid-cols-3 gap-12 items-start">
+              {/* Left Content (Hero text) */}
+              <div className="lg:col-span-2 space-y-8">
+                <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium text-blue-600 border border-blue-200 shadow-sm">
+                  <Zap className="w-4 h-4" />
+                  AI-Powered Quiz Generation
+                </div>
 
-          {/* Features Grid */}
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
-            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-100">
-              <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                <Upload className="w-6 h-6 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Easy Upload</h3>
-              <p className="text-gray-600">Upload TXT documents or paste text directly</p>
-            </div>
-            
-            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-100">
-              <div className="bg-green-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                <Brain className="w-6 h-6 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">AI Powered</h3>
-              <p className="text-gray-600">Gemini 2.0 Flash generates relevant questions</p>
-            </div>
-            
-            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-gray-100">
-              <div className="bg-purple-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-                <Code className="w-6 h-6 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Instant Results</h3>
-              <p className="text-gray-600">Get detailed analytics and performance metrics</p>
-            </div>
-          </div>
+                <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+                  Transform Content into{" "}
+                  <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                    Interactive Learning
+                  </span>
+                </h1>
 
-          {/* Technology Stack */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 p-8 max-w-2xl mx-auto">
-            <h3 className="text-2xl font-bold text-center mb-6">Technology Stack</h3>
-            <div className="flex flex-wrap justify-center gap-6">
-              <div className="text-center">
-                <div className="bg-blue-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2">
-                  <span className="text-2xl">⚛️</span>
+                <p className="text-xl text-gray-600 leading-relaxed">
+                  Upload documents or paste text to instantly create engaging quizzes using Google's Gemini 2.0 Flash AI.
+                  Perfect for educators, students, and content creators.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button
+                    type="button"
+                    onClick={() => handleStart("upload")}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-2xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-2xl hover:scale-105 flex items-center gap-3 text-lg"
+                  >
+                    <Play className="w-5 h-5" />
+                    Start Creating Quizzes
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+
+                  <a
+                    href={developer.github}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="bg-white text-gray-800 border-2 border-gray-200 px-8 py-4 rounded-2xl font-semibold hover:border-blue-300 hover:shadow-lg transition-all duration-200 flex items-center gap-3"
+                  >
+                    <Github className="w-5 h-5" />
+                    View Code
+                  </a>
                 </div>
-                <p className="font-semibold">React + Vite</p>
+
+                {/* Stats */}
+                <div className="flex items-center gap-8 pt-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">25+</div>
+                    <div className="text-sm text-gray-600">Questions per Quiz</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">5MB</div>
+                    <div className="text-sm text-gray-600">File Support</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">AI</div>
+                    <div className="text-sm text-gray-600">Powered</div>
+                  </div>
+                </div>
               </div>
-              <div className="text-center">
-                <div className="bg-green-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2">
-                  <span className="text-2xl">🎨</span>
+
+              {/* Right Column: Hero Visual + Developer Card */}
+              <div className="space-y-6">
+                {/* Hero visual box */}
+                <div className="relative z-10 bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border border-white/20">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-red-400 rounded-full"></div>
+                      <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                      <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-2xl">
+                        <div className="text-sm text-gray-600">Upload your document</div>
+                        <div className="font-semibold text-gray-800">PDF, TXT, or Text input</div>
+                      </div>
+
+                      <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-2xl">
+                        <div className="text-sm text-gray-600">AI generates questions</div>
+                        <div className="font-semibold text-gray-800">Up to 25 targeted questions</div>
+                      </div>
+
+                      <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-2xl">
+                        <div className="text-sm text-gray-600">Interactive quiz experience</div>
+                        <div className="font-semibold text-gray-800">Real-time scoring & analytics</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <p className="font-semibold">Tailwind CSS</p>
-              </div>
-              <div className="text-center">
-                <div className="bg-purple-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2">
-                  <span className="text-2xl">🤖</span>
-                </div>
-                <p className="font-semibold">Gemini 2.0 Flash</p>
-              </div>
-              <div className="text-center">
-                <div className="bg-orange-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-2">
-                  <span className="text-2xl">⚡</span>
-                </div>
-                <p className="font-semibold">Fast Generation</p>
+
+                {/* Developer Card (Highlighted) */}
+                <DeveloperCard developer={developer} />
               </div>
             </div>
           </div>
         </section>
 
+        {/* Features Section */}
+        <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-white/50">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">Powerful Features</h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Everything you need to create engaging, intelligent quizzes from your content
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <FeatureCard icon={<Upload className="w-7 h-7 text-white" />} title="Multiple Format Support" description="Upload PDF and TXT files up to 5MB, or simply paste your text. Gemini AI handles the rest." />
+              <FeatureCard icon={<Brain className="w-7 h-7 text-white" />} title="AI-Powered Questions" description="Gemini 2.0 Flash generates relevant, challenging questions tailored to your content." />
+              <FeatureCard icon={<Users className="w-7 h-7 text-white" />} title="Customizable Quizzes" description="Choose from 5 to 25 questions, set difficulty levels, and select quiz types." />
+              <FeatureCard icon={<Rocket className="w-7 h-7 text-white" />} title="Real-time Analytics" description="Get detailed performance metrics, time tracking, and comprehensive results." />
+              <FeatureCard icon={<Code className="w-7 h-7 text-white" />} title="Modern Technology" description="Built with React, Tailwind CSS, and powered by Google's latest AI technology." />
+              <FeatureCard icon={<Star className="w-7 h-7 text-white" />} title="Responsive Design" description="Works perfectly on desktop, tablet, and mobile devices with a seamless experience." />
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">How It Works</h2>
+              <p className="text-xl text-gray-600">Create amazing quizzes in just three simple steps</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              <Step number="1" icon={<Upload className="w-4 h-4 text-white" />} title="Upload Content" desc="Upload your PDF/TXT document or paste text directly. Our AI will analyze the content." />
+              <Step number="2" icon={<Brain className="w-4 h-4 text-white" />} title="AI Generates Quiz" desc="Gemini AI creates targeted questions based on your content and preferences." />
+              <Step number="3" icon={<Star className="w-4 h-4 text-white" />} title="Take & Share" desc="Take the interactive quiz, get instant results, and share your performance." />
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-4xl font-bold text-white mb-4">Ready to Transform Your Content?</h2>
+            <p className="text-xl text-blue-100 mb-8">Join thousands of educators and content creators using QuizGen AI</p>
+            <button
+              type="button"
+              onClick={() => handleStart("upload")}
+              className="bg-white text-blue-600 px-8 py-4 rounded-2xl font-semibold hover:bg-gray-100 transition-all duration-200 shadow-2xl hover:shadow-2xl hover:scale-105 flex items-center gap-3 text-lg mx-auto"
+            >
+              <Sparkles className="w-5 h-5" />
+              Start Creating Free Quizzes
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </section>
+
         {/* Footer */}
-        <footer className="bg-white/80 backdrop-blur-sm border-t border-gray-200 mt-16">
-          <div className="max-w-6xl mx-auto px-4 py-8 text-center">
-            <p className="text-gray-600">
-              Developed with ❤️ by <span className="font-semibold text-blue-600">MD AFAN</span>
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              Powered by Google Gemini 2.0 Flash AI • Quiz Generation Platform
-            </p>
+        <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid md:grid-cols-4 gap-8">
+              <div>
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-2 rounded-xl">
+                    <Brain className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-xl font-bold">QuizGen AI</span>
+                </div>
+                <p className="text-gray-400">Transforming content into engaging learning experiences with AI.</p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-4">Product</h4>
+                <ul className="space-y-2 text-gray-400">
+                  <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
+                  <li><a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a></li>
+                  <li><a href="#technology" className="hover:text-white transition-colors">Technology</a></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-4">Developer</h4>
+                <div className="mb-3">
+                  {/* Small dev card in footer */}
+                  <div className="flex items-center gap-3">
+                    <img src={developer.image} alt={developer.name} className="w-12 h-12 rounded-full object-cover" />
+                    <div>
+                      <div className="font-semibold">{developer.name}</div>
+                      <div className="text-xs text-gray-400">{developer.role}</div>
+                    </div>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-gray-400">
+                  <li className="flex items-center gap-2"><Code className="w-4 h-4" /> React + Tailwind</li>
+                  <li>Gemini 2.0 Flash</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-4">Support</h4>
+                <ul className="space-y-2 text-gray-400">
+                  {/* <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li> */}
+                  <li><a href="https://mohd-affan.netlify.app/" className="hover:text-white transition-colors">Contact</a></li>
+                  <li><a href={developer.github} target="https://github.com/md-afan" rel="noreferrer" className="hover:text-white transition-colors">GitHub</a></li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+              <p>&copy; {new Date().getFullYear()} QuizGen AI. All rights reserved. Powered by Google Gemini 2.0 Flash</p>
+            </div>
           </div>
         </footer>
       </div>
     );
   }
 
-  // Quiz Creation View
+  // QUIZ CREATION VIEW
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 p-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex items-center justify-between mb-8">
           <button
-            onClick={handleNewQuiz}
+            type="button"
+            onClick={() => setCurrentView("home")}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-semibold"
           >
             ← Back to Home
           </button>
           <div className="text-right">
             <h1 className="text-2xl font-bold text-gray-900">QuizGen AI</h1>
-            <p className="text-sm text-gray-600">by MD AFAN • Gemini 2.0 Flash</p>
+            <p className="text-sm text-gray-600">by {developer.name} • Gemini 2.0 Flash</p>
           </div>
         </div>
 
@@ -190,10 +365,9 @@ function App() {
           <div className="mb-6">
             <div className="flex border-b border-gray-200">
               <button
+                type="button"
                 className={`flex items-center gap-2 px-4 py-2 font-medium ${
-                  activeTab === "upload"
-                    ? "border-b-2 border-blue-600 text-blue-600"
-                    : "text-gray-500"
+                  activeTab === "upload" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"
                 }`}
                 onClick={() => setActiveTab("upload")}
               >
@@ -201,10 +375,9 @@ function App() {
                 Upload Document
               </button>
               <button
+                type="button"
                 className={`flex items-center gap-2 px-4 py-2 font-medium ${
-                  activeTab === "text"
-                    ? "border-b-2 border-blue-600 text-blue-600"
-                    : "text-gray-500"
+                  activeTab === "text" ? "border-b-2 border-blue-600 text-blue-600" : "text-gray-500"
                 }`}
                 onClick={() => setActiveTab("text")}
               >
@@ -212,7 +385,7 @@ function App() {
                 Paste Text
               </button>
             </div>
-            
+
             <div className="p-6 bg-white rounded-b-2xl shadow-md">
               {activeTab === "upload" ? (
                 <DocumentUpload onTextExtracted={setDocText} />
@@ -225,51 +398,88 @@ function App() {
 
         {docText && !quiz.length && !quizResults && (
           <div className="p-6 bg-white rounded-2xl shadow-md mb-6">
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Number of Questions: {numQuestions}
+            <div className="mb-6">
+              <label className="block text-lg font-semibold text-gray-700 mb-3">
+                Number of Questions: <span className="text-blue-600">{numQuestions}</span>
               </label>
               <input
                 type="range"
-                min="3"
-                max="10"
+                min="5"
+                max="25"
                 value={numQuestions}
                 onChange={(e) => setNumQuestions(parseInt(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600"
               />
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>3</span>
+              <div className="flex justify-between text-sm text-gray-500 mt-2">
                 <span>5</span>
-                <span>7</span>
                 <span>10</span>
+                <span>15</span>
+                <span>20</span>
+                <span>25</span>
               </div>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                More questions provide comprehensive coverage of your content
+              </p>
             </div>
-            <QuizGenerator 
-              docText={docText} 
-              onQuizReady={setQuiz} 
-              numQuestions={numQuestions}
-            />
-            <button
-              onClick={() => setDocText("")}
-              className="mt-3 px-4 py-2 text-gray-600 hover:text-gray-800"
-            >
-              ← Back
+
+            <QuizGenerator docText={docText} onQuizReady={setQuiz} numQuestions={numQuestions} />
+
+            <button type="button" onClick={() => setDocText("")} className="mt-4 px-4 py-2 text-gray-600 hover:text-gray-800 flex items-center gap-2">
+              ← Back to Input
             </button>
           </div>
         )}
 
-        {quiz.length > 0 && !quizResults && (
-          <QuizPlayer quiz={quiz} onQuizComplete={handleQuizComplete} />
-        )}
+        {quiz.length > 0 && !quizResults && <QuizPlayer quiz={quiz} onQuizComplete={handleQuizComplete} />}
 
-        {quizResults && (
-          <QuizResults 
-            results={quizResults} 
-            onNewQuiz={handleNewQuiz}
-            quiz={quiz}
-          />
-        )}
+        {quizResults && <QuizResults results={quizResults} onNewQuiz={handleNewQuiz} quiz={quiz} />}
       </div>
+    </div>
+  );
+}
+
+/* ----- DeveloperCard component (highlighted) ----- */
+function DeveloperCard({ developer }) {
+  return (
+    <div className="bg-white rounded-2xl shadow-2xl p-5 border border-white/20 flex flex-col items-center text-center">
+      <img src={developer.image} alt={developer.name} className="w-28 h-28 rounded-full object-cover mb-4 shadow-md" />
+      <h3 className="text-lg font-bold">{developer.name}</h3>
+      <p className="text-sm text-gray-500">{developer.role}</p>
+      <p className="text-sm text-gray-600 mt-3">{developer.bio}</p>
+      <div className="mt-4 flex items-center gap-3">
+        <a href={`mailto:${developer.email}`} className="text-sm text-blue-600 underline">Contact</a>
+        <a href={developer.github} target="_blank" rel="noreferrer" className="text-sm text-gray-600 hover:text-blue-600">GitHub</a>
+      </div>
+    </div>
+  );
+}
+
+/* ----- small helper components ----- */
+function FeatureCard({ icon, title, description }) {
+  return (
+    <div className="bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+      <div className="bg-gradient-to-r from-blue-500 to-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center mb-6">
+        {icon}
+      </div>
+      <h3 className="text-xl font-semibold text-gray-900 mb-3">{title}</h3>
+      <p className="text-gray-600 leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
+function Step({ number, icon, title, desc }) {
+  return (
+    <div className="text-center">
+      <div className="relative inline-block mb-6">
+        <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+          {number}
+        </div>
+        <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+          {icon}
+        </div>
+      </div>
+      <h3 className="text-xl font-semibold text-gray-900 mb-3">{title}</h3>
+      <p className="text-gray-600">{desc}</p>
     </div>
   );
 }
