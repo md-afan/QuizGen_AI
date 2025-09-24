@@ -13,7 +13,7 @@ export default function QuizPlayer({ quiz, onQuizComplete }) {
     // Start timer when component mounts
     startTimeRef.current = new Date();
     setIsRunning(true);
-    
+
     timerRef.current = setInterval(() => {
       if (isRunning && startTimeRef.current) {
         const currentTime = new Date();
@@ -40,20 +40,20 @@ export default function QuizPlayer({ quiz, onQuizComplete }) {
     if (timerRef.current) {
       clearInterval(timerRef.current);
     }
-    
+
     setSubmitted(true);
-    
+
     // Calculate score properly
     const score = quiz.reduce((acc, q, i) => {
       const userAnswer = answers[i];
       const correctAnswer = q.answer;
-      
+
       if (!userAnswer || !correctAnswer) return acc;
-      
+
       // Compare first character (A, B, C, D) to handle different formats
       const userChoice = userAnswer.charAt(0).toUpperCase();
       const correctChoice = correctAnswer.charAt(0).toUpperCase();
-      
+
       return userChoice === correctChoice ? acc + 1 : acc;
     }, 0);
 
@@ -70,12 +70,12 @@ export default function QuizPlayer({ quiz, onQuizComplete }) {
   const currentScore = quiz.reduce((acc, q, i) => {
     const userAnswer = answers[i];
     const correctAnswer = q.answer;
-    
+
     if (!userAnswer || !correctAnswer) return acc;
-    
+
     const userChoice = userAnswer.charAt(0).toUpperCase();
     const correctChoice = correctAnswer.charAt(0).toUpperCase();
-    
+
     return userChoice === correctChoice ? acc + 1 : acc;
   }, 0);
 
@@ -119,21 +119,20 @@ export default function QuizPlayer({ quiz, onQuizComplete }) {
               const correctChoice = correctAnswer ? correctAnswer.charAt(0).toUpperCase() : '';
               const optionLetter = String.fromCharCode(65 + j);
               const isCorrect = optionLetter === correctChoice;
-              
+
               return (
                 <label
                   key={j}
-                  className={`block px-4 py-3 rounded-lg cursor-pointer border transition-all duration-200 ${
-                    submitted
+                  className={`block px-4 py-3 rounded-lg cursor-pointer border transition-all duration-200 ${submitted
                       ? isCorrect
                         ? "bg-green-100 border-green-400 text-green-800"
                         : isSelected
-                        ? "bg-red-100 border-red-400 text-red-800"
-                        : "border-gray-200 text-gray-600"
+                          ? "bg-red-100 border-red-400 text-red-800"
+                          : "border-gray-200 text-gray-600"
                       : isSelected
-                      ? "bg-blue-100 border-blue-400 text-blue-800"
-                      : "hover:bg-gray-50 border-gray-200 text-gray-700"
-                  }`}
+                        ? "bg-blue-100 border-blue-400 text-blue-800"
+                        : "hover:bg-gray-50 border-gray-200 text-gray-700"
+                    }`}
                 >
                   <input
                     type="radio"
@@ -161,14 +160,13 @@ export default function QuizPlayer({ quiz, onQuizComplete }) {
         <button
           onClick={handleSubmit}
           disabled={!allAnswered}
-          className={`w-full py-4 text-white rounded-xl font-semibold text-lg transition-all duration-200 ${
-            allAnswered 
-              ? "bg-green-600 hover:bg-green-700 shadow-lg" 
+          className={`w-full py-4 text-white rounded-xl font-semibold text-lg transition-all duration-200 ${allAnswered
+              ? "bg-green-600 hover:bg-green-700 shadow-lg"
               : "bg-gray-400 cursor-not-allowed"
-          }`}
+            }`}
         >
-          {allAnswered 
-            ? `Submit Quiz - ${currentScore}/${quiz.length} Correct` 
+          {allAnswered
+            ? "Submit Quiz"  // Changed from showing score to just "Submit Quiz"
             : `Answer all ${quiz.length} questions to submit`}
         </button>
       )}

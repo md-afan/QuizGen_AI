@@ -13,6 +13,8 @@ import {
   Play,
   Github,
   Sparkles,
+  File,
+  Book,
 } from "lucide-react";
 
 import DocumentUpload from "./components/DocumentUpload.jsx";
@@ -35,7 +37,7 @@ function App() {
   const [docText, setDocText] = useState("");
   const [quiz, setQuiz] = useState([]);
   const [quizResults, setQuizResults] = useState(null);
-  const [numQuestions, setNumQuestions] = useState(10);
+  const [numQuestions, setNumQuestions] = useState(15);
   const [activeTab, setActiveTab] = useState("upload"); // "upload" | "text"
 
   useEffect(() => {
@@ -48,7 +50,7 @@ function App() {
   const developer = {
     name: "MD AFAN",
     role: "Full-Stack Developer | AI",
-    image: "https://media.licdn.com/dms/image/v2/D4E03AQEn1n9gWNmmIg/profile-displayphoto-scale_400_400/B4EZlXYUwTIQAk-/0/1758107619415?e=1761782400&v=beta&t=fOuysMiYsJu8t4lByc1UYil55PbNL1dGvqhTdZzfcQs", // placeholder avatar; replace with your image URL
+    image: "https://media.licdn.com/dms/image/v2/D4E03AQEn1n9gWNmmIg/profile-displayphoto-scale_400_400/B4EZlXYUwTIQAk-/0/1758107619415?e=1761782400&v=beta&t=fOuysMiYsJu8t4lByc1UYil55PbNL1dGvqhTdZzfcQs",
     email: "mdafan00094@gmail.com",
     github: "https://github.com/md-afan",
     bio: "Building AI-powered learning tools and educational UIs. Passionate about accessible edtech and clean UI."
@@ -72,7 +74,7 @@ function App() {
     setDocText("");
     setQuiz([]);
     setQuizResults(null);
-    setNumQuestions(10);
+    setNumQuestions(15);
     setActiveTab("upload");
     setCurrentView("home");
   };
@@ -108,15 +110,6 @@ function App() {
               </div>
 
               <div className="flex items-center gap-4">
-                {/* <a
-                  href={developer.github}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hidden md:inline-flex items-center gap-2 text-sm text-gray-700 hover:text-blue-600"
-                >
-                  <Github className="w-4 h-4" /> View Code
-                </a> */}
-
                 <button
                   type="button"
                   onClick={() => handleStart("upload")}
@@ -138,19 +131,19 @@ function App() {
               <div className="lg:col-span-2 space-y-8">
                 <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium text-blue-600 border border-blue-200 shadow-sm">
                   <Zap className="w-4 h-4" />
-                  AI-Powered Quiz Generation
+                  Advanced AI-Powered Quiz Generation
                 </div>
 
                 <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
-                  Transform Content into{" "}
+                  Transform Documents into{" "}
                   <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                    Interactive Learning
+                    Intelligent Quizzes
                   </span>
                 </h1>
 
                 <p className="text-xl text-gray-600 leading-relaxed">
-                  Upload documents or paste text to instantly create engaging quizzes using Google's Gemini 2.0 Flash AI.
-                  Perfect for educators, students, and content creators.
+                  Upload PDF, DOCX, or TXT files (up to 20MB) and generate up to 50 targeted questions using Google's Gemini 2.0 Flash AI.
+                  Perfect for educators, students, and professional training.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -164,25 +157,22 @@ function App() {
                     <ChevronRight className="w-5 h-5" />
                   </button>
 
-                  <a
-                    href={developer.github}
-                    target="_blank"
-                    rel=""
-                    className=""
-                  >
-                    
-                  </a>
+                  
                 </div>
 
-                {/* Stats */}
+                {/* Updated Stats */}
                 <div className="flex items-center gap-8 pt-6">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">25+</div>
-                    <div className="text-sm text-gray-600">Questions per Quiz</div>
+                    <div className="text-2xl font-bold text-gray-900">50</div>
+                    <div className="text-sm text-gray-600">Max Questions</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-gray-900">5MB</div>
-                    <div className="text-sm text-gray-600">File Support</div>
+                    <div className="text-2xl font-bold text-gray-900">20MB</div>
+                    <div className="text-sm text-gray-600">File Size</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-900">3</div>
+                    <div className="text-sm text-gray-600">Formats</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-gray-900">AI</div>
@@ -193,7 +183,7 @@ function App() {
 
               {/* Right Column: Hero Visual + Developer Card */}
               <div className="space-y-6">
-                {/* Hero visual box */}
+                {/* Enhanced Hero visual box */}
                 <div className="relative z-10 bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border border-white/20">
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
@@ -203,19 +193,34 @@ function App() {
                     </div>
 
                     <div className="space-y-3">
-                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-2xl">
-                        <div className="text-sm text-gray-600">Upload your document</div>
-                        <div className="font-semibold text-gray-800">PDF, TXT, or Text input</div>
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-2xl border border-blue-100">
+                        <div className="flex items-center gap-3">
+                          <File className="w-6 h-6 text-blue-600" />
+                          <div>
+                            <div className="text-sm text-gray-600">Multiple File Formats</div>
+                            <div className="font-semibold text-gray-800">PDF, DOCX, TXT Support</div>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-2xl">
-                        <div className="text-sm text-gray-600">AI generates questions</div>
-                        <div className="font-semibold text-gray-800">Up to 25 targeted questions</div>
+                      <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-2xl border border-green-100">
+                        <div className="flex items-center gap-3">
+                          <Book className="w-6 h-6 text-green-600" />
+                          <div>
+                            <div className="text-sm text-gray-600">Advanced Quiz Generation</div>
+                            <div className="font-semibold text-gray-800">Up to 50 Questions</div>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-2xl">
-                        <div className="text-sm text-gray-600">Interactive quiz experience</div>
-                        <div className="font-semibold text-gray-800">Real-time scoring & analytics</div>
+                      <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-2xl border border-purple-100">
+                        <div className="flex items-center gap-3">
+                          <Star className="w-6 h-6 text-purple-600" />
+                          <div>
+                            <div className="text-sm text-gray-600">Large File Support</div>
+                            <div className="font-semibold text-gray-800">20MB File Size Limit</div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -228,48 +233,91 @@ function App() {
           </div>
         </section>
 
-        {/* Features Section */}
+        {/* Updated Features Section */}
         <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-white/50">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Powerful Features</h2>
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">Advanced Features</h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Everything you need to create engaging, intelligent quizzes from your content
+                Everything you need to create comprehensive, intelligent quizzes from your documents
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <FeatureCard icon={<Upload className="w-7 h-7 text-white" />} title="Multiple Format Support" description="Upload PDF and TXT files up to 5MB, or simply paste your text. Gemini AI handles the rest." />
-              <FeatureCard icon={<Brain className="w-7 h-7 text-white" />} title="AI-Powered Questions" description="Gemini 2.0 Flash generates relevant, challenging questions tailored to your content." />
-              <FeatureCard icon={<Users className="w-7 h-7 text-white" />} title="Customizable Quizzes" description="Choose from 5 to 25 questions, set difficulty levels, and select quiz types." />
-              <FeatureCard icon={<Rocket className="w-7 h-7 text-white" />} title="Real-time Analytics" description="Get detailed performance metrics, time tracking, and comprehensive results." />
-              <FeatureCard icon={<Code className="w-7 h-7 text-white" />} title="Modern Technology" description="Built with React, Tailwind CSS, and powered by Google's latest AI technology." />
-              <FeatureCard icon={<Star className="w-7 h-7 text-white" />} title="Responsive Design" description="Works perfectly on desktop, tablet, and mobile devices with a seamless experience." />
+              <FeatureCard 
+                icon={<File className="w-7 h-7 text-white" />} 
+                title="Extended File Support" 
+                description="Upload PDF, DOCX, and TXT files up to 20MB. Gemini AI processes all formats seamlessly."
+                badges={["PDF", "DOCX", "TXT"]}
+              />
+              <FeatureCard 
+                icon={<Book className="w-7 h-7 text-white" />} 
+                title="50 Questions Maximum" 
+                description="Generate comprehensive quizzes with up to 50 targeted questions covering all aspects of your content."
+                highlight="50 Qs"
+              />
+              <FeatureCard 
+                icon={<Upload className="w-7 h-7 text-white" />} 
+                title="20MB File Size" 
+                description="Handle larger documents and comprehensive materials with our increased 20MB file size limit."
+                highlight="20MB"
+              />
+              <FeatureCard 
+                icon={<Brain className="w-7 h-7 text-white" />} 
+                title="AI-Powered Analysis" 
+                description="Gemini 2.0 Flash intelligently analyzes content to generate relevant, challenging questions."
+              />
+              <FeatureCard 
+                icon={<Users className="w-7 h-7 text-white" />} 
+                title="Smart Quiz Types" 
+                description="Choose from comprehensive, conceptual, detailed, or application-based quiz formats."
+              />
+              <FeatureCard 
+                icon={<Rocket className="w-7 h-7 text-white" />} 
+                title="Professional Analytics" 
+                description="Get detailed performance metrics, time tracking, and comprehensive results analysis."
+              />
             </div>
           </div>
         </section>
 
-        {/* How It Works */}
+        {/* Updated How It Works */}
         <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-gray-900 mb-4">How It Works</h2>
-              <p className="text-xl text-gray-600">Create amazing quizzes in just three simple steps</p>
+              <p className="text-xl text-gray-600">Create comprehensive quizzes in just three simple steps</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
-              <Step number="1" icon={<Upload className="w-4 h-4 text-white" />} title="Upload Content" desc="Upload your PDF/TXT document or paste text directly. Our AI will analyze the content." />
-              <Step number="2" icon={<Brain className="w-4 h-4 text-white" />} title="AI Generates Quiz" desc="Gemini AI creates targeted questions based on your content and preferences." />
-              <Step number="3" icon={<Star className="w-4 h-4 text-white" />} title="Take & Share" desc="Take the interactive quiz, get instant results, and share your performance." />
+              <Step number="1" icon={<File className="w-4 h-4 text-white" />} title="Upload Document" desc="Upload PDF, DOCX, or TXT files up to 20MB. Our AI will analyze the content comprehensively." />
+              <Step number="2" icon={<Brain className="w-4 h-4 text-white" />} title="AI Generates Quiz" desc="Gemini AI creates up to 50 targeted questions based on your content and preferences." />
+              <Step number="3" icon={<Star className="w-4 h-4 text-white" />} title="Take & Analyze" desc="Take the interactive quiz, get instant results with detailed analytics and insights." />
             </div>
           </div>
         </section>
 
-        {/* CTA */}
+        {/* Updated CTA */}
         <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-4xl font-bold text-white mb-4">Ready to Transform Your Content?</h2>
-            <p className="text-xl text-blue-100 mb-8">Join thousands of educators and content creators using QuizGen AI</p>
+            <h2 className="text-4xl font-bold text-white mb-4">Ready to Create Advanced Quizzes?</h2>
+            <p className="text-xl text-blue-100 mb-8">Generate up to 50 questions from 20MB documents with multiple format support</p>
+            
+            <div className="grid md:grid-cols-3 gap-4 mb-8 max-w-2xl mx-auto">
+              <div className="bg-white/20 p-4 rounded-2xl">
+                <div className="text-2xl font-bold text-white">50</div>
+                <div className="text-blue-100">Questions Max</div>
+              </div>
+              <div className="bg-white/20 p-4 rounded-2xl">
+                <div className="text-2xl font-bold text-white">20MB</div>
+                <div className="text-blue-100">File Size</div>
+              </div>
+              <div className="bg-white/20 p-4 rounded-2xl">
+                <div className="text-2xl font-bold text-white">3</div>
+                <div className="text-blue-100">Formats</div>
+              </div>
+            </div>
+            
             <button
               type="button"
               onClick={() => handleStart("upload")}
@@ -282,7 +330,7 @@ function App() {
           </div>
         </section>
 
-        {/* Footer */}
+        {/* Updated Footer */}
         <footer className="bg-gray-900 text-white py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="grid md:grid-cols-4 gap-8">
@@ -293,22 +341,22 @@ function App() {
                   </div>
                   <span className="text-xl font-bold">QuizGen AI</span>
                 </div>
-                <p className="text-gray-400">Transforming content into engaging learning experiences with AI.</p>
+                <p className="text-gray-400">Advanced quiz generation with 50 questions, 20MB files, and multiple format support.</p>
               </div>
 
               <div>
-                <h4 className="font-semibold mb-4">Product</h4>
+                <h4 className="font-semibold mb-4">Capabilities</h4>
                 <ul className="space-y-2 text-gray-400">
-                  <li><a href="#features" className="hover:text-white transition-colors">Features</a></li>
-                  <li><a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a></li>
-                  <li><a href="#technology" className="hover:text-white transition-colors">Technology</a></li>
+                  <li>• Up to 50 questions</li>
+                  <li>• 20MB file support</li>
+                  <li>• PDF, DOCX, TXT</li>
+                  <li>• AI-powered analysis</li>
                 </ul>
               </div>
 
               <div>
                 <h4 className="font-semibold mb-4">Developer</h4>
                 <div className="mb-3">
-                  {/* Small dev card in footer */}
                   <div className="flex items-center gap-3">
                     <img src={developer.image} alt={developer.name} className="w-12 h-12 rounded-full object-cover" />
                     <div>
@@ -326,9 +374,8 @@ function App() {
               <div>
                 <h4 className="font-semibold mb-4">Support</h4>
                 <ul className="space-y-2 text-gray-400">
-                  {/* <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li> */}
                   <li><a href="https://mohd-affan.netlify.app/" className="hover:text-white transition-colors">Contact</a></li>
-                  <li><a href={developer.github} target="https://github.com/md-afan" rel="noreferrer" className="hover:text-white transition-colors">GitHub</a></li>
+                  <li><a href={developer.github} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">GitHub</a></li>
                 </ul>
               </div>
             </div>
@@ -404,20 +451,20 @@ function App() {
               <input
                 type="range"
                 min="5"
-                max="25"
+                max="50"
                 value={numQuestions}
                 onChange={(e) => setNumQuestions(parseInt(e.target.value))}
                 className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600"
               />
               <div className="flex justify-between text-sm text-gray-500 mt-2">
                 <span>5</span>
-                <span>10</span>
                 <span>15</span>
-                <span>20</span>
                 <span>25</span>
+                <span>35</span>
+                <span>50</span>
               </div>
               <p className="text-xs text-gray-500 mt-2 text-center">
-                More questions provide comprehensive coverage of your content
+                Generate up to 50 questions for comprehensive coverage of your content
               </p>
             </div>
 
@@ -453,8 +500,8 @@ function DeveloperCard({ developer }) {
   );
 }
 
-/* ----- small helper components ----- */
-function FeatureCard({ icon, title, description }) {
+/* ----- Enhanced FeatureCard component ----- */
+function FeatureCard({ icon, title, description, badges, highlight }) {
   return (
     <div className="bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-lg border border-white/20 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
       <div className="bg-gradient-to-r from-blue-500 to-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center mb-6">
@@ -462,6 +509,20 @@ function FeatureCard({ icon, title, description }) {
       </div>
       <h3 className="text-xl font-semibold text-gray-900 mb-3">{title}</h3>
       <p className="text-gray-600 leading-relaxed">{description}</p>
+      
+      {badges && (
+        <div className="flex gap-2 mt-4">
+          {badges.map((badge, index) => (
+            <span key={index} className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+              {badge}
+            </span>
+          ))}
+        </div>
+      )}
+      
+      {highlight && (
+        <div className="mt-4 text-2xl font-bold text-blue-600">{highlight}</div>
+      )}
     </div>
   );
 }
