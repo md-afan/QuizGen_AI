@@ -38,25 +38,47 @@ export default function DocumentUpload({ onTextExtracted }) {
   const extractTextFromPDF = async (file) => {
     try {
       // Dynamic import to avoid including pdf-parse in initial bundle
-      const pdfModule = await import('pdf-parse/lib/pdf-parse.js');
-      const pdf = pdfModule.default || pdfModule;
+      const pdfjsLib = await import('pdfjs-dist');
       
+      // Set the worker source correctly
+      if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        const pdfjsVersion = '3.11.174'; // Use a specific version
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsVersion}/pdf.worker.min.js`;
+      }
+
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async function(e) {
           try {
             const typedArray = new Uint8Array(e.target.result);
-            const pdfData = await pdf(typedArray);
-            resolve(pdfData.text);
-          } catch (error) {
-            reject(error);
+            const pdf = await pdfjsLib.getDocument(typedArray).promise;
+            
+            let text = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const textContent = await page.getTextContent();
+              text += textContent.items.map(item => item.str).join(' ') + '\n';
+            }
+            
+            resolve(text.trim());
+          } catch (parseError) {
+            console.error('PDF.js parsing error:', parseError);
+            // Fallback: Try pdf-parse if PDF.js fails
+            try {
+              const PDFParse = await import('pdf-parse');
+              const pdfParse = PDFParse.default || PDFParse;
+              const pdfData = await pdfParse(typedArray);
+              resolve(pdfData.text || '');
+            } catch (fallbackError) {
+              reject(new Error('PDF text extraction failed. The PDF might be image-based.'));
+            }
           }
         };
-        reader.onerror = reject;
+        reader.onerror = () => reject(new Error('Failed to read PDF file'));
         reader.readAsArrayBuffer(file);
       });
     } catch (error) {
-      throw new Error(`Failed to parse PDF: ${error.message}`);
+      throw new Error(`PDF processing error: ${error.message}`);
     }
   };
 
@@ -90,6 +112,11 @@ export default function DocumentUpload({ onTextExtracted }) {
       if (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')) {
         // TXT file - read as text
         textContent = await file.text();
+        
+        // Validate text content
+        if (!textContent || textContent.trim().length < 10) {
+          throw new Error("The text file is too short. Please upload a file with at least 10 characters of text.");
+        }
       } 
       else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
                file.name.toLowerCase().endsWith('.docx')) {
@@ -102,13 +129,22 @@ export default function DocumentUpload({ onTextExtracted }) {
         }
       }
       else if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-        // PDF file - send as base64 to Gemini for better processing
-        shouldSendAsFile = true;
-        textContent = await extractTextFromPDF(file);
-        
-        // Validate PDF text extraction
-        if (!textContent || textContent.trim().length < 10) {
-          console.warn("PDF text extraction may be limited. Sending file to Gemini for better processing.");
+        // PDF file - try to extract text first, then decide whether to send as file or text
+        try {
+          textContent = await extractTextFromPDF(file);
+          
+          // If we successfully extracted sufficient text, send as text
+          if (textContent && textContent.trim().length >= 10) {
+            shouldSendAsFile = false;
+          } else {
+            // If text extraction failed or insufficient text, send as file to Gemini
+            shouldSendAsFile = true;
+            console.warn("PDF text extraction limited. Sending file to Gemini for processing.");
+          }
+        } catch (pdfError) {
+          // If PDF text extraction fails completely, send as file to Gemini
+          shouldSendAsFile = true;
+          console.warn("PDF text extraction failed. Sending file to Gemini:", pdfError.message);
         }
       }
 
@@ -118,14 +154,18 @@ export default function DocumentUpload({ onTextExtracted }) {
       setFileType(file.type);
 
       if (shouldSendAsFile) {
-        // For PDF files, send as base64 to Gemini
+        // For PDF files with poor text extraction, send as base64 to Gemini
         const base64String = await new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => {
-            const base64 = reader.result.split(',')[1];
-            resolve(base64);
+            try {
+              const base64 = reader.result.split(',')[1];
+              resolve(base64);
+            } catch (error) {
+              reject(new Error('Failed to convert file to base64'));
+            }
           };
-          reader.onerror = reject;
+          reader.onerror = () => reject(new Error('Failed to read file'));
           reader.readAsDataURL(file);
         });
 
@@ -138,13 +178,13 @@ export default function DocumentUpload({ onTextExtracted }) {
           mimeType: file.type
         });
       } else {
-        // For TXT and DOCX files, send as text
+        // For TXT, DOCX, and PDFs with good text extraction, send as text
         onTextExtracted(textContent);
       }
       
     } catch (error) {
       console.error("Error processing file:", error);
-      setError(error.message || "Error processing file. Please try again.");
+      setError(error.message || "Error processing file. Please try a different file.");
     } finally {
       setIsLoading(false);
     }
@@ -183,7 +223,7 @@ export default function DocumentUpload({ onTextExtracted }) {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-    onTextExtracted(""); // Clear the text
+    onTextExtracted("");
   };
 
   const handleRetry = () => {
@@ -263,6 +303,8 @@ export default function DocumentUpload({ onTextExtracted }) {
             <p className="text-sm text-gray-500 mt-1">
               {fileName.toLowerCase().endsWith('.docx') 
                 ? "Extracting text from Word document..." 
+                : fileName.toLowerCase().endsWith('.pdf')
+                ? "Analyzing PDF content..."
                 : "Reading file content..."}
             </p>
           </div>
@@ -270,13 +312,21 @@ export default function DocumentUpload({ onTextExtracted }) {
           <div className="flex flex-col items-center">
             <File className="w-12 h-12 text-red-500 mb-4" />
             <p className="text-red-600 font-medium mb-2">Upload Failed</p>
-            <p className="text-sm text-red-600 mb-4">{error}</p>
-            <button
-              onClick={handleRetry}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
-            >
-              Try Again
-            </button>
+            <p className="text-sm text-red-600 mb-4 text-center max-w-sm">{error}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleRetry}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => setError("")}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm"
+              >
+                Try Different File
+              </button>
+            </div>
           </div>
         ) : fileName ? (
           <div className="flex flex-col items-center">
@@ -326,7 +376,9 @@ export default function DocumentUpload({ onTextExtracted }) {
           <p className="text-xs text-gray-500 mt-1">
             {fileName.toLowerCase().endsWith('.docx') 
               ? "Text extracted from Word document" 
-              : "File will be processed by Gemini AI"}
+              : fileName.toLowerCase().endsWith('.pdf')
+              ? "PDF will be processed by Gemini AI"
+              : "Text content ready for processing"}
           </p>
         </div>
       )}
@@ -337,21 +389,22 @@ export default function DocumentUpload({ onTextExtracted }) {
         <ul className="text-sm text-blue-700 space-y-1">
           <li>• Supported formats: TXT, PDF, DOCX</li>
           <li>• Maximum file size: 20MB</li>
-          <li>• DOCX files will be converted to text for processing</li>
+          <li>• Minimum text content: 10 characters</li>
           <li>• PDF files should have selectable text for best results</li>
         </ul>
       </div>
 
-      {/* DOCX Specific Tips */}
-      <div className="mt-3 p-4 bg-green-50 rounded-lg">
-        <h4 className="font-semibold text-green-800 mb-2">DOCX Support:</h4>
-        <ul className="text-sm text-green-700 space-y-1">
-          <li>• Word documents (.docx) are fully supported</li>
-          <li>• Text, formatting, and basic structure are preserved</li>
-          <li>• Images and complex tables may not be fully extracted</li>
-          <li>• For best results, ensure text is selectable in your document</li>
-        </ul>
-      </div>
+      {/* PDF Troubleshooting */}
+      {error && error.includes('PDF') && (
+        <div className="mt-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <h4 className="font-semibold text-yellow-800 mb-2">PDF Tips:</h4>
+          <ul className="text-sm text-yellow-700 space-y-1">
+            <li>• Ensure the PDF has selectable text (not scanned images)</li>
+            <li>• Try converting the PDF to a text file if issues persist</li>
+            <li>• Simple PDFs with clear text work best</li>
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
