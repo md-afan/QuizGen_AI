@@ -22,11 +22,14 @@ import TextInput from "./components/TextInput.jsx";
 import QuizGenerator from "./components/QuizGenerator.jsx";
 import QuizPlayer from "./components/QuizPlayer.jsx";
 import QuizResults from "./components/QuizResults.jsx";
+import UserFormModal from "./components/UserFormModal";
+import ConfirmationModal from "./components/ConfirmationModal";
 
 /**
  * App.jsx
  * - Adds a DeveloperCard feature (name + image + role + contact) highlighted in Hero and Footer
  * - Keeps quiz flow: home -> quiz creation -> quiz play -> results
+ * - Adds user form and confirmation modals
  */
 
 function App() {
@@ -39,6 +42,12 @@ function App() {
   const [quizResults, setQuizResults] = useState(null);
   const [numQuestions, setNumQuestions] = useState(15);
   const [activeTab, setActiveTab] = useState("upload"); // "upload" | "text"
+
+  // New state variables for modals
+  const [userData, setUserData] = useState(null);
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState("");
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -56,10 +65,37 @@ function App() {
     bio: "Building AI-powered learning tools and educational UIs. Passionate about accessible edtech and clean UI."
   };
 
+  // Handle text extraction from DocumentUpload
+  const handleTextExtracted = (text, fileName = "Uploaded Document") => {
+    setDocText(text);
+    setUploadedFileName(fileName);
+    setShowUserForm(true);
+  };
+
+  // Handle text submission from TextInput
+  const handleTextSubmit = (text) => {
+    setDocText(text);
+    setUploadedFileName("Pasted Text");
+    setShowUserForm(true);
+  };
+
   // Start quiz flow — ensures active tab is set and navigates to quiz view
   const handleStart = (tab = "upload") => {
     setActiveTab(tab);
     setCurrentView("quiz");
+  };
+
+  // Handle user form submission
+  const handleUserFormSubmit = (data) => {
+    setUserData(data);
+    setShowUserForm(false);
+    setShowConfirmation(true);
+  };
+
+  // Handle confirmation
+  const handleConfirmation = () => {
+    setShowConfirmation(false);
+    // Proceed with quiz generation (QuizGenerator will be shown automatically)
   };
 
   const handleQuizComplete = (results) => {
@@ -77,6 +113,8 @@ function App() {
     setNumQuestions(15);
     setActiveTab("upload");
     setCurrentView("home");
+    setUserData(null);
+    setUploadedFileName("");
   };
 
   // HOME VIEW
@@ -156,8 +194,6 @@ function App() {
                     Start Creating Quizzes
                     <ChevronRight className="w-5 h-5" />
                   </button>
-
-                  
                 </div>
 
                 {/* Updated Stats */}
@@ -392,6 +428,23 @@ function App() {
   // QUIZ CREATION VIEW
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 p-4">
+      {/* Add modals */}
+      <UserFormModal
+        isOpen={showUserForm}
+        onClose={() => setShowUserForm(false)}
+        onSubmit={handleUserFormSubmit}
+        fileName={uploadedFileName}
+      />
+      
+      <ConfirmationModal
+        isOpen={showConfirmation}
+        onClose={() => setShowConfirmation(false)}
+        onConfirm={handleConfirmation}
+        userData={userData}
+        numQuestions={numQuestions}
+        fileName={uploadedFileName}
+      />
+
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <button
@@ -434,15 +487,15 @@ function App() {
 
             <div className="p-6 bg-white rounded-b-2xl shadow-md">
               {activeTab === "upload" ? (
-                <DocumentUpload onTextExtracted={setDocText} />
+                <DocumentUpload onTextExtracted={handleTextExtracted} />
               ) : (
-                <TextInput onTextExtracted={setDocText} />
+                <TextInput onTextExtracted={handleTextSubmit} />
               )}
             </div>
           </div>
         )}
 
-        {docText && !quiz.length && !quizResults && (
+        {docText && !quiz.length && !quizResults && !showUserForm && !showConfirmation && (
           <div className="p-6 bg-white rounded-2xl shadow-md mb-6">
             <div className="mb-6">
               <label className="block text-lg font-semibold text-gray-700 mb-3">
@@ -478,7 +531,14 @@ function App() {
 
         {quiz.length > 0 && !quizResults && <QuizPlayer quiz={quiz} onQuizComplete={handleQuizComplete} />}
 
-        {quizResults && <QuizResults results={quizResults} onNewQuiz={handleNewQuiz} quiz={quiz} />}
+        {quizResults && (
+          <QuizResults 
+            results={quizResults} 
+            onNewQuiz={handleNewQuiz}
+            quiz={quiz}
+            userData={userData}
+          />
+        )}
       </div>
     </div>
   );
