@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { CheckCircle2, XCircle, Clock, BarChart3, RotateCcw, Star, Download, FileText } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, BarChart3, RotateCcw, Star, Download, FileText, Award, TrendingUp, Users, Calendar } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -12,45 +12,60 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
   const percentage = results.percentage || Math.round((results.score / results.total) * 100);
   
   const getPerformanceMessage = () => {
-    if (percentage >= 90) return "Outstanding! 🎉";
-    if (percentage >= 80) return "Excellent! 👏";
-    if (percentage >= 70) return "Great job! 👍";
-    if (percentage >= 60) return "Good work! 😊";
-    if (percentage >= 50) return "Not bad! 📚";
-    return "Keep practicing! 💪";
+    if (percentage >= 90) return "Outstanding Performance! 🎉";
+    if (percentage >= 80) return "Excellent Work! 👏";
+    if (percentage >= 70) return "Great Job! 👍";
+    if (percentage >= 60) return "Good Effort! 😊";
+    if (percentage >= 50) return "Keep Practicing! 📚";
+    return "You Can Do Better! 💪";
   };
 
-  const getStrengthColor = (percentage) => {
-    if (percentage >= 90) return "text-green-600";
-    if (percentage >= 80) return "text-blue-600";
-    if (percentage >= 70) return "text-indigo-600";
-    if (percentage >= 60) return "text-yellow-600";
-    if (percentage >= 50) return "text-orange-600";
-    return "text-red-600";
+  const getPerformanceColor = () => {
+    if (percentage >= 90) return { primary: "#10B981", secondary: "#ECFDF5" };
+    if (percentage >= 80) return { primary: "#3B82F6", secondary: "#EFF6FF" };
+    if (percentage >= 70) return { primary: "#8B5CF6", secondary: "#F5F3FF" };
+    if (percentage >= 60) return { primary: "#F59E0B", secondary: "#FFFBEB" };
+    if (percentage >= 50) return { primary: "#F97316", secondary: "#FFF7ED" };
+    return { primary: "#EF4444", secondary: "#FEF2F2" };
   };
 
-  // Helper function to safely get answer data
   const getAnswerData = (index) => {
-    if (!results) return { userAnswer: "", correctAnswer: "", isCorrect: false };
+    if (!results || !quiz || !quiz[index]) return { userAnswer: "", correctAnswer: "", isCorrect: false };
     
-    // Try different possible data structures
     const userAnswer = 
       results.answers?.[index] || 
       results.userAnswers?.[index] || 
       "";
     
-    const correctAnswer = 
+    const correctAnswerKey = 
       results.correctAnswers?.[index] ||
-      (quiz && quiz[index]?.correctAnswer) ||
-      (quiz && quiz[index]?.answer) ||
+      quiz[index]?.correctAnswer ||
+      quiz[index]?.answer ||
       "";
     
-    const isCorrect = 
-      results.correctQuestions?.[index] ||
-      userAnswer && correctAnswer && 
-      userAnswer.toString().charAt(0).toUpperCase() === correctAnswer.toString().charAt(0).toUpperCase();
+    let correctAnswerText = correctAnswerKey;
     
-    return { userAnswer, correctAnswer, isCorrect };
+    if (quiz[index]?.options && Array.isArray(quiz[index].options)) {
+      const correctOption = quiz[index].options.find(opt => 
+        opt.toString().charAt(0).toUpperCase() === correctAnswerKey.toString().charAt(0).toUpperCase()
+      );
+      
+      if (correctOption) {
+        correctAnswerText = correctOption;
+      }
+    }
+    
+    const isCorrect = 
+      results.correctQuestions?.[index] !== undefined 
+        ? results.correctQuestions[index] 
+        : userAnswer && correctAnswerKey && 
+          userAnswer.toString().charAt(0).toUpperCase() === correctAnswerKey.toString().charAt(0).toUpperCase();
+    
+    return { 
+      userAnswer: userAnswer || "Not answered", 
+      correctAnswer: correctAnswerText, 
+      isCorrect 
+    };
   };
 
   const downloadPDF = async () => {
@@ -62,148 +77,306 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       
-      // Set font to Times New Roman
-      pdf.setFont("times", "normal");
+      // Modern color scheme
+      const colors = {
+        primary: getPerformanceColor().primary,
+        secondary: getPerformanceColor().secondary,
+        dark: "#1F2937",
+        light: "#6B7280",
+        success: "#10B981",
+        danger: "#EF4444",
+        warning: "#F59E0B",
+        background: "#F9FAFB"
+      };
 
-      // Function to add header
+      // Set modern font
+      pdf.setFont("helvetica");
+      
+      let currentPage = 1;
+      let yPosition = 0;
+
+      // Function to add modern header
       const addHeader = (pdf, pageNumber) => {
-        pdf.setFillColor(41, 128, 185);
-        pdf.rect(0, 0, pageWidth, 20, 'F');
-        pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(16);
-        pdf.setFont("times", "bold");
-        pdf.text("QuizGen AI | MD AFAN - Detailed Results Report", pageWidth / 2, 12, { align: "center" });
+        // Gradient background
+        pdf.setFillColor(79, 70, 229);
+        pdf.rect(0, 0, pageWidth, 60, 'F');
         
-        // Page number
+        // Logo and title centered
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(20);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("Quiz Results ", pageWidth / 2, 25, { align: "center" });
+        pdf.setFontSize(11);
+        pdf.setFont("helvetica", "normal");
+        pdf.text("Study smarter, not harder – with QuizGen AI. |  Developed by MD AFAN \n Professional Assessment Summary\n", pageWidth / 2, 35, { align: "center" });
+        
+        // Page info
         pdf.setFontSize(10);
-        pdf.text(`Page ${pageNumber}`, pageWidth - 10, 12, { align: "right" });
+        pdf.text(`Page ${pageNumber}`, pageWidth - 20, 20, { align: "right" });
+        pdf.text(new Date().toLocaleDateString(), pageWidth - 20, 26, { align: "right" });
       };
 
-      // Function to add footer
+      // Function to add modern footer
       const addFooter = (pdf) => {
-        pdf.setFillColor(52, 73, 94);
-        pdf.rect(0, pageHeight - 15, pageWidth, 15, 'F');
+        pdf.setFillColor(31, 41, 55);
+        pdf.rect(0, pageHeight - 20, pageWidth, 20, 'F');
         pdf.setTextColor(255, 255, 255);
-        pdf.setFontSize(8);
-        pdf.text(`Generated by QuizGen AI | Developed by MD AFAN`, pageWidth / 2, pageHeight - 8, { align: "center" });
-        pdf.text(new Date().toLocaleDateString(), 10, pageHeight - 8);
-        pdf.text(`https://md-afan.github.io/QuizGen_AI/`, pageWidth - 10, pageHeight - 8, { align: "right" });
-      };
-
-      // Function to add student info section
-      const addStudentInfo = (pdf, yPosition) => {
-        pdf.setFillColor(240, 248, 255);
-        pdf.rect(10, yPosition, pageWidth - 20, 25, 'F');
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(12);
-        pdf.setFont("times", "bold");
-        pdf.text("STUDENT INFORMATION", 15, yPosition + 8);
-        pdf.setFont("times", "normal");
-        pdf.setFontSize(10);
-        pdf.text(`Name: ${userData?.userName || "N/A"}`, 15, yPosition + 15);
-        pdf.text(`Course: ${userData?.courseName || "N/A"}`, pageWidth / 2, yPosition + 15);
-        pdf.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth - 15, yPosition + 15, { align: "right" });
-        return yPosition + 30;
-      };
-
-      // Function to add summary section
-      const addSummarySection = (pdf, yPosition) => {
-        pdf.setFillColor(245, 245, 245);
-        pdf.rect(10, yPosition, pageWidth - 20, 60, 'F');
-        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(9);
+        pdf.setFont("helvetica", "normal");
         
-        // Score circle
+        // Centered footer text
+        pdf.text(`Generated by QuizGen AI  |  Developed by MD AFAN ${new Date().toLocaleDateString()}  |  https://md-afan.github.io/QuizGen_AI/`, pageWidth / 2, pageHeight - 12, { align: "center" });
+      };
+
+      // Function to add student info with centered design
+      const addStudentInfo = (pdf, yPos) => {
+        const cardHeight = 40;
+        const cardWidth = pageWidth - 40;
+        const cardX = 20;
+        
+        // Card background with shadow effect
         pdf.setFillColor(255, 255, 255);
-        pdf.circle(30, yPosition + 30, 20, 'F');
-        pdf.setFontSize(16);
-        pdf.setFont("times", "bold");
-        pdf.text(`${percentage}%`, 30, yPosition + 33, { align: "center" });
+        pdf.roundedRect(cardX, yPos, cardWidth, cardHeight, 3, 3, 'F');
+        pdf.setDrawColor(229, 231, 235);
+        pdf.setLineWidth(0.5);
+        pdf.roundedRect(cardX, yPos, cardWidth, cardHeight, 3, 3, 'D');
         
-        // Performance message
+        // Content centered
+        pdf.setTextColor(colors.dark);
         pdf.setFontSize(14);
-        pdf.text(getPerformanceMessage(), 60, yPosition + 15);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("STUDENT INFORMATION", pageWidth / 2, yPos + 12, { align: "center" });
         
-        // Stats
-        pdf.setFontSize(10);
-        pdf.text(`Correct Answers: ${results.score}/${results.total}`, 60, yPosition + 25);
-        pdf.text(`Time Taken: ${results.timeTaken} seconds`, 60, yPosition + 35);
-        pdf.text(`Performance: ${getPerformanceMessage()}`, 60, yPosition + 45);
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "normal");
         
-        return yPosition + 65;
+        const studentInfoY = yPos + 25;
+        pdf.text(`Name: ${userData?.userName || "N/A"}`, pageWidth / 2 - 40, studentInfoY);
+        pdf.text(`Course: ${userData?.courseName || "N/A"}`, pageWidth / 2 + 40, studentInfoY);
+        pdf.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth / 2, studentInfoY + 8, { align: "center" });
+        
+        return yPos + cardHeight + 10;
       };
 
-      // Function to add question to PDF
-      const addQuestion = (pdf, question, index, yPosition) => {
-        const questionHeight = 40; // Approximate height per question
+      // Function to add performance summary with centered design
+      const addPerformanceSummary = (pdf, yPos) => {
+        const sectionHeight = 100;
+        const sectionWidth = pageWidth - 40;
+        const sectionX = 20;
         
-        // Check if we need a new page
-        if (yPosition + questionHeight > pageHeight - 30) {
+        // Main card
+        pdf.setFillColor(colors.secondary);
+        pdf.roundedRect(sectionX, yPos, sectionWidth, sectionHeight, 5, 5, 'F');
+        
+        // Circular progress centered
+        const centerX = pageWidth / 2;
+        const centerY = yPos + 40;
+        const radius = 25;
+        
+        // Background circle
+        pdf.setDrawColor(255, 255, 255, 50);
+        pdf.setLineWidth(4);
+        pdf.circle(centerX, centerY, radius, 'D');
+        
+        // Progress circle
+        pdf.setDrawColor(colors.primary);
+        pdf.setLineWidth(4);
+        const circumference = 2 * Math.PI * radius;
+        const dashLength = (percentage / 100) * circumference;
+        pdf.setLineDash([dashLength, circumference - dashLength], 0);
+        pdf.circle(centerX, centerY, radius, 'D');
+        pdf.setLineDash([]);
+        
+        // Percentage text
+        pdf.setTextColor(colors.primary);
+        pdf.setFontSize(20);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`${percentage}%`, centerX, centerY, { align: "center" });
+        
+        pdf.setFontSize(8);
+        pdf.text("OVERALL SCORE", centerX, centerY + 8, { align: "center" });
+        
+        // Performance message centered below the circle
+        pdf.setTextColor(colors.dark);
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(getPerformanceMessage(), centerX, yPos + 75, { align: "center" });
+        
+        // Stats grid centered below the message
+        const statsY = yPos + 85;
+        pdf.setFontSize(13);
+        pdf.setFont("helvetica", "normal");
+        
+        pdf.text(`Correct: ${results.score}/${results.total}`, centerX - 40, statsY);
+        pdf.text(`Time: ${results.timeTaken}s`, centerX, statsY);
+        pdf.text(`Accuracy: ${percentage}%`, centerX + 40, statsY);
+        
+        return yPos + sectionHeight + 15;
+      };
+
+      // Function to add detailed analysis section centered
+      const addDetailedAnalysis = (pdf, yPos) => {
+        // Section header centered
+        pdf.setTextColor(colors.dark);
+        pdf.setFontSize(14);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("DETAILED QUESTION ANALYSIS", pageWidth / 2, yPos, { align: "center" });
+        
+        // Decorative line centered
+        pdf.setDrawColor(colors.primary);
+        pdf.setLineWidth(1);
+        const lineWidth = 100;
+        pdf.line((pageWidth - lineWidth) / 2, yPos + 3, (pageWidth + lineWidth) / 2, yPos + 3);
+        
+        return yPos + 10;
+      };
+
+      // Function to add modern question card centered
+      const addQuestionCard = (pdf, question, index, yPos) => {
+        const { userAnswer, correctAnswer, isCorrect } = getAnswerData(index);
+        const cardHeight = 45;
+        const cardWidth = pageWidth - 40;
+        const cardX = 20;
+        
+        if (yPos + cardHeight > pageHeight - 40) {
           pdf.addPage();
           currentPage++;
-          yPosition = 30;
+          yPos = 30;
           addHeader(pdf, currentPage);
-          addStudentInfo(pdf, yPosition);
-          yPosition += 35;
         }
         
-        // Question box
-        pdf.setFillColor(255, 255, 255);
-        pdf.rect(10, yPosition, pageWidth - 20, 35, 'FD');
+        // Card background
+        pdf.setFillColor(isCorrect ? "#F0F9FF" : "#FEF2F2");
+        pdf.roundedRect(cardX, yPos, cardWidth, cardHeight, 3, 3, 'F');
+        pdf.setDrawColor(isCorrect ? "#BFDBFE" : "#FECACA");
+        pdf.setLineWidth(0.5);
+        pdf.roundedRect(cardX, yPos, cardWidth, cardHeight, 3, 3, 'D');
         
-        // Question number and text
+        // Status indicator
+        pdf.setFillColor(isCorrect ? colors.success : colors.danger);
+        pdf.roundedRect(cardX, yPos, 5, cardHeight, 1, 1, 'F');
+        
+        // Question number centered in left section
+        pdf.setTextColor(colors.dark);
         pdf.setFontSize(10);
-        pdf.setFont("times", "bold");
-        pdf.text(`Q${index + 1}:`, 15, yPosition + 8);
-        pdf.setFont("times", "normal");
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`Q${index + 1}`, cardX + 15, yPos + 10);
         
-        // Split question text if too long
+        // Status badge centered in right section
+        pdf.setFillColor(isCorrect ? colors.success : colors.danger);
+        const badgeWidth = 25;
+        const badgeX = cardX + cardWidth - badgeWidth - 10;
+        pdf.roundedRect(badgeX, yPos + 5, badgeWidth, 8, 4, 4, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(7);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(isCorrect ? "CORRECT" : "WRONG", badgeX + badgeWidth/2, yPos + 9, { align: "center" });
+        
+        // Question text (truncated) centered in main area
+        pdf.setTextColor(colors.dark);
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "normal");
         const questionText = question.question || "No question text available";
-        const maxWidth = pageWidth - 40;
-        const lines = pdf.splitTextToSize(questionText, maxWidth);
-        pdf.text(lines, 25, yPosition + 8);
+        const truncatedText = questionText.length > 150 ? questionText.substring(0, 150) + "..." : questionText;
+        pdf.text(truncatedText, cardX + 30, yPos + 10, { maxWidth: cardWidth - 80 });
         
-        // Get answer data safely
-        const { userAnswer, correctAnswer, isCorrect } = getAnswerData(index);
-        
+        // Answers centered below question
         pdf.setFontSize(8);
-        pdf.text(`Your Answer: ${userAnswer || "Not answered"}`, 15, yPosition + 20);
-        pdf.text(isCorrect ? "✓ Correct" : "✗ Incorrect", pageWidth - 20, yPosition + 20, { align: "right" });
+        pdf.setTextColor(colors.light);
+        pdf.text("Your Answer:", cardX + 15, yPos + 25);
+        pdf.setTextColor(isCorrect ? colors.success : colors.danger);
+        pdf.text(userAnswer, cardX + 35, yPos + 25, { maxWidth: cardWidth - 100 });
         
-        if (!isCorrect && correctAnswer) {
-          pdf.text(`Correct Answer: ${correctAnswer}`, 15, yPosition + 28);
-        }
+        pdf.setTextColor(colors.light);
+        pdf.text("Correct Answer:", cardX + 15, yPos + 35);
+        pdf.setTextColor(colors.success);
+        pdf.text(correctAnswer, cardX + 40, yPos + 35, { maxWidth: cardWidth - 100 });
         
-        return yPosition + 40;
+        return yPos + cardHeight + 8;
       };
 
-      // Start generating PDF
-      let currentPage = 1;
-      let yPosition = 30;
+      // Function to add insights and recommendations centered
+      const addInsights = (pdf, yPos) => {
+        const sectionHeight = 50;
+        const sectionWidth = pageWidth - 40;
+        const sectionX = 20;
+        
+        if (yPos + sectionHeight > pageHeight - 40) {
+          pdf.addPage();
+          currentPage++;
+          yPos = 30;
+          addHeader(pdf, currentPage);
+        }
+        
+        // Insights card centered
+        pdf.setFillColor(colors.background);
+        pdf.roundedRect(sectionX, yPos, sectionWidth, sectionHeight, 5, 5, 'F');
+        pdf.setDrawColor(229, 231, 235);
+        pdf.setLineWidth(0.5);
+        pdf.roundedRect(sectionX, yPos, sectionWidth, sectionHeight, 5, 5, 'D');
+        
+        // Title centered
+        pdf.setTextColor(colors.dark);
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("PERFORMANCE INSIGHTS", pageWidth / 2, yPos + 10, { align: "center" });
+        
+        // Insights based on performance centered
+        pdf.setFontSize(8);
+        pdf.setFont("helvetica", "normal");
+        
+        let insights = [];
+        if (percentage >= 90) {
+          insights = [
+            "Excellent mastery of the subject matter",
+            "Consider advanced topics for further challenge",
+            "You're in the top percentile of performers",
+            "\n",
+            "Website link: https://md-afan.github.io/QuizGen_AI/"
+          ];
+        } else if (percentage >= 70) {
+          insights = [
+            "Solid understanding of core concepts",
+            "Focus on areas with minor mistakes",
+            "You're on track for excellent performance",
+            "\n",
+            "Website link: https://md-afan.github.io/QuizGen_AI/"
+          ];
+        } else {
+          insights = [
+            "Review fundamental concepts",
+            "Practice regularly to improve retention",
+            "Focus on one topic at a time for better results",
+            "\n",
+            "Website link: https://md-afan.github.io/QuizGen_AI/"
+            
+          ];
+        }
+        
+        insights.forEach((insight, i) => {
+          pdf.text(`• ${insight}`, sectionX + 10, yPos + 20 + (i * 6));
+        });
+        
+        return yPos + sectionHeight + 10;
+      };
 
-      // Page 1 - Header and student info
+      // Generate PDF content
       addHeader(pdf, currentPage);
+      yPosition = 70;
+      
       yPosition = addStudentInfo(pdf, yPosition);
+      yPosition = addPerformanceSummary(pdf, yPosition);
+      yPosition = addDetailedAnalysis(pdf, yPosition);
       
-      // Summary section
-      yPosition = addSummarySection(pdf, yPosition);
-      
-      // Detailed results header
-      pdf.setFontSize(12);
-      pdf.setFont("times", "bold");
-      pdf.text("DETAILED QUESTION ANALYSIS", pageWidth / 2, yPosition, { align: "center" });
-      yPosition += 10;
-
-      // Add each question safely
+      // Add questions
       if (quiz && Array.isArray(quiz)) {
         quiz.forEach((question, index) => {
-          yPosition = addQuestion(pdf, question, index, yPosition);
+          yPosition = addQuestionCard(pdf, question, index, yPosition);
         });
-      } else {
-        pdf.setFontSize(10);
-        pdf.text("No question data available.", 15, yPosition);
-        yPosition += 10;
       }
-
+      
+      yPosition = addInsights(pdf, yPosition);
+      
       // Add footer to all pages
       const pageCount = pdf.internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
@@ -211,47 +384,49 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
         addFooter(pdf);
       }
 
-      // Save PDF
-      pdf.save(`Quiz-Results-${userData?.userName || "Student"}-${new Date().getTime()}.pdf`);
+      pdf.save(`QuizReport_${userData?.userName || "Student"}_${new Date().getTime()}.pdf`);
 
     } catch (error) {
       console.error("Error generating PDF:", error);
-      // Fallback to simple PDF generation
       await generateSimplePDF();
     } finally {
       setIsDownloading(false);
     }
   };
 
-  // Fallback PDF generation
+  // Simple fallback PDF (centered and clean)
   const generateSimplePDF = async () => {
     try {
       const pdf = new jsPDF("p", "mm", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
+      const colors = getPerformanceColor();
       
-      pdf.setFont("times", "normal");
+      pdf.setFont("helvetica");
       
-      // Header
-      pdf.setFillColor(41, 128, 185);
-      pdf.rect(0, 0, pageWidth, 20, 'F');
+      // Clean centered header
+      pdf.setFillColor(79, 70, 229);
+      pdf.rect(0, 0, pageWidth, 50, 'F');
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(16);
-      pdf.text("QuizGen AI - Results Summary", pageWidth / 2, 12, { align: "center" });
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Quiz Results", pageWidth / 2, 30, { align: "center" });
       
-      // Student Info
+      // Content centered
       pdf.setTextColor(0, 0, 0);
       pdf.setFontSize(12);
-      let yPosition = 30;
-      pdf.text(`Student: ${userData?.userName || "N/A"}`, 20, yPosition);
-      pdf.text(`Course: ${userData?.courseName || "N/A"}`, 20, yPosition + 8);
-      pdf.text(`Date: ${new Date().toLocaleDateString()}`, 20, yPosition + 16);
-      pdf.text(`Score: ${results.score}/${results.total} (${percentage}%)`, 20, yPosition + 24);
+      let yPosition = 70;
       
-      yPosition += 40;
+      const centerX = pageWidth / 2;
       
-      // Questions (simplified)
-      pdf.setFontSize(10);
+      pdf.text(`Student: ${userData?.userName || "N/A"}`, centerX, yPosition, { align: "center" });
+      pdf.text(`Score: ${results.score}/${results.total} (${percentage}%)`, centerX, yPosition + 10, { align: "center" });
+      pdf.text(`Performance: ${getPerformanceMessage()}`, centerX, yPosition + 20, { align: "center" });
+      pdf.text(`Time Taken: ${results.timeTaken} seconds`, centerX, yPosition + 30, { align: "center" });
+      
+      yPosition += 50;
+      
       if (quiz && Array.isArray(quiz)) {
+        pdf.setFontSize(10);
         quiz.forEach((question, index) => {
           if (yPosition > 250) {
             pdf.addPage();
@@ -260,22 +435,19 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
           
           const { userAnswer, correctAnswer } = getAnswerData(index);
           
-          pdf.text(`Q${index + 1}: ${question.question || "No question text"}`, 20, yPosition);
-          yPosition += 6;
-          
-          pdf.text(`Your Answer: ${userAnswer || "Not answered"}`, 25, yPosition);
-          yPosition += 4;
-          pdf.text(`Correct Answer: ${correctAnswer || "Not available"}`, 25, yPosition);
-          yPosition += 8;
+          pdf.text(`Q${index + 1}: ${question.question}`, 20, yPosition);
+          pdf.text(`Your Answer: ${userAnswer}`, 25, yPosition + 6);
+          pdf.text(`Correct Answer: ${correctAnswer}`, 25, yPosition + 12);
+          yPosition += 20;
         });
       }
       
-      // Footer
-      pdf.setFontSize(8);
+      // Simple centered footer
+      pdf.setFontSize(9);
       pdf.setTextColor(100, 100, 100);
-      pdf.text("Generated by QuizGen AI | Developed by MD AFAN", pageWidth / 2, 280, { align: "center" });
+      pdf.text(`Generated by QuizGen AI  |  Developed by MD AFAN ${new Date().toLocaleDateString()}  |  https://md-afan.github.io/QuizGen_AI/`, centerX, 280, { align: "center" });
       
-      pdf.save(`Quiz-Results-Simple-${new Date().getTime()}.pdf`);
+      pdf.save(`Quiz_Results_${new Date().getTime()}.pdf`);
     } catch (error) {
       console.error("Error in fallback PDF:", error);
       downloadTextReport();
@@ -295,21 +467,21 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
 
   const generateTextReport = () => {
     const date = new Date().toLocaleString();
-    let report = `QUIZGEN AI - DETAILED RESULTS REPORT\n`;
+    let report = `🎯 QUIZ RESULTS REPORT\n`;
     report += `========================================\n\n`;
-    report += `STUDENT INFORMATION:\n`;
+    report += `👤 STUDENT INFORMATION:\n`;
     report += `-------------------\n`;
     report += `Name: ${userData?.userName || "N/A"}\n`;
     report += `Course: ${userData?.courseName || "N/A"}\n`;
     report += `Date: ${date}\n\n`;
     
-    report += `QUIZ SUMMARY:\n`;
+    report += `📊 QUIZ SUMMARY:\n`;
     report += `-------------\n`;
     report += `Score: ${results.score}/${results.total} (${percentage}%)\n`;
     report += `Time Taken: ${results.timeTaken} seconds\n`;
     report += `Performance: ${getPerformanceMessage()}\n\n`;
     
-    report += `DETAILED RESULTS:\n`;
+    report += `📝 DETAILED RESULTS:\n`;
     report += `================\n\n`;
 
     if (quiz && Array.isArray(quiz)) {
@@ -319,17 +491,14 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
         report += `QUESTION ${i + 1}:\n`;
         report += `-----------\n`;
         report += `Q: ${q.question || "No question text"}\n`;
-        report += `Your Answer: ${userAnswer || "Not answered"} ${isCorrect ? "✓" : "✗"}\n`;
-        if (!isCorrect && correctAnswer) {
-          report += `Correct Answer: ${correctAnswer}\n`;
-        }
+        report += `✅ Your Answer: ${userAnswer} ${isCorrect ? "✓" : "✗"}\n`;
+        report += `🎯 Correct Answer: ${correctAnswer}\n`;
         report += `\n`;
       });
     }
 
     report += `\n---\n`;
-    report += `Generated by QuizGen AI | Developed by MD AFAN\n`;
-    report += `https://md-afan.github.io/QuizGen_AI/\n`;
+    report += `Generated by QuizGen AI  |  Developed by MD AFAN  ${new Date().toLocaleDateString()}  |  https://md-afan.github.io/QuizGen_AI/ \n`;
     
     return report;
   };
@@ -337,8 +506,8 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Download Options */}
-      <div className="p-6 bg-white rounded-2xl shadow-md">
-        <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+      <div className="p-6 bg-white rounded-2xl shadow-lg border border-gray-100">
+        <h3 className="text-xl font-semibold mb-4 flex items-center gap-2 text-gray-800">
           <Download className="w-5 h-5 text-blue-600" />
           Download Professional Report
         </h3>
@@ -346,7 +515,7 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
           <button
             onClick={downloadPDF}
             disabled={isDownloading}
-            className="flex items-center gap-3 p-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-semibold hover:from-red-700 hover:to-red-800 transition-all duration-200 disabled:opacity-50"
+            className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             <FileText className="w-5 h-5" />
             {isDownloading ? "Generating PDF..." : "Download PDF Report"}
@@ -354,7 +523,7 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
           
           <button
             onClick={downloadTextReport}
-            className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200"
+            className="flex items-center gap-3 p-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             <Download className="w-5 h-5" />
             Download Text Report
@@ -362,32 +531,35 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
         </div>
         
         {userData && (
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">
-              <strong>Student:</strong> {userData.userName} | <strong>Course:</strong> {userData.courseName}
+          <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+            <p className="text-sm text-gray-700 font-medium">
+              <span className="text-blue-600">🎓 Student:</span> {userData.userName} | 
+              <span className="text-purple-600"> 📚 Course:</span> {userData.courseName}
             </p>
-            <p className="text-xs text-gray-500 mt-1">
-              PDF report will include all {quiz?.length || 0} questions with professional formatting
+            <p className="text-xs text-gray-600 mt-1">
+              ✨ Modern PDF report includes professional design, performance insights, and detailed analysis
             </p>
           </div>
         )}
       </div>
 
-      {/* Results Content - This is just for display, PDF is generated separately */}
-      <div ref={resultsRef} className="space-y-6 bg-white p-6 rounded-2xl shadow-md">
+      {/* Rest of your existing JSX remains the same */}
+      <div ref={resultsRef} className="space-y-6 bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
         {/* Header Info */}
-        <div className="text-center border-b border-gray-200 pb-4 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Quiz Results Report</h1>
+        <div className="text-center border-b border-gray-200 pb-6 mb-6">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Quiz Results Report
+          </h1>
           {userData && (
-            <div className="mt-2 text-sm text-gray-600">
-              <p>Student: {userData.userName} | Course: {userData.courseName}</p>
-              <p>Date: {new Date().toLocaleDateString()} | Questions: {quiz?.length || 0}</p>
+            <div className="mt-3 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg inline-block">
+              <p>👤 Student: {userData.userName} | 📚 Course: {userData.courseName}</p>
+              <p>📅 Date: {new Date().toLocaleDateString()} | ❓ Questions: {quiz?.length || 0}</p>
             </div>
           )}
         </div>
 
         {/* Summary Card */}
-        <div className="text-center p-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-100">
+        <div className="text-center p-8 bg-gradient-to-br from-blue-50 via-white to-purple-50 rounded-2xl border-2 border-blue-100 shadow-lg">
           <div className="flex justify-center mb-6">
             <div className="relative">
               <svg className="w-32 h-32 transform rotate-[-90deg]" viewBox="0 0 36 36">
@@ -400,7 +572,7 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
                 <path
                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                   fill="none"
-                  stroke="#4f46e5"
+                  stroke={getPerformanceColor().primary}
                   strokeWidth="3"
                   strokeDasharray={`${percentage}, 100`}
                   strokeLinecap="round"
@@ -412,47 +584,47 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
             </div>
           </div>
           
-          <h2 className={`text-3xl font-bold mb-3 ${getStrengthColor(percentage)}`}>
+          <h2 className={`text-3xl font-bold mb-3 text-${getPerformanceColor().primary.replace('#', '')}`}>
             {getPerformanceMessage()}
           </h2>
           
           <div className="flex justify-center items-center gap-6 mb-4 flex-wrap">
-            <div className="flex items-center gap-2 bg-green-100 px-3 py-1 rounded-full">
+            <div className="flex items-center gap-2 bg-green-100 px-4 py-2 rounded-full shadow-sm">
               <CheckCircle2 className="w-4 h-4 text-green-600" />
               <span className="font-semibold text-green-700">{results.score} Correct</span>
             </div>
-            <div className="flex items-center gap-2 bg-red-100 px-3 py-1 rounded-full">
+            <div className="flex items-center gap-2 bg-red-100 px-4 py-2 rounded-full shadow-sm">
               <XCircle className="w-4 h-4 text-red-600" />
               <span className="font-semibold text-red-700">{results.total - results.score} Incorrect</span>
             </div>
           </div>
           
-          <div className="flex items-center justify-center gap-2 text-gray-600 bg-white px-3 py-1 rounded-full inline-block border">
+          <div className="flex items-center justify-center gap-2 text-gray-600 bg-white px-4 py-2 rounded-full inline-block border shadow-sm">
             <Clock className="w-4 h-4" />
             <span>Time taken: {results.timeTaken} seconds</span>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid md:grid-cols-3 gap-4">
-          <div className={`p-6 rounded-2xl shadow-sm text-center ${getStrengthColor(percentage).replace('text', 'bg')} bg-opacity-10`}>
-            <BarChart3 className="w-8 h-8 mx-auto mb-3 text-indigo-600" />
-            <div className={`text-3xl font-bold ${getStrengthColor(percentage)}`}>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl shadow-lg text-center border border-blue-200">
+            <TrendingUp className="w-8 h-8 mx-auto mb-3 text-blue-600" />
+            <div className="text-3xl font-bold text-gray-800">
               {percentage}%
             </div>
             <div className="text-sm text-gray-600 font-medium">Overall Score</div>
           </div>
           
-          <div className="p-6 bg-green-50 rounded-2xl shadow-sm text-center">
-            <CheckCircle2 className="w-8 h-8 mx-auto mb-3 text-green-600" />
+          <div className="p-6 bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl shadow-lg text-center border border-green-200">
+            <Award className="w-8 h-8 mx-auto mb-3 text-green-600" />
             <div className="text-3xl font-bold text-gray-800">
               {results.score}/{results.total}
             </div>
             <div className="text-sm text-gray-600 font-medium">Correct Answers</div>
           </div>
           
-          <div className="p-6 bg-blue-50 rounded-2xl shadow-sm text-center">
-            <Clock className="w-8 h-8 mx-auto mb-3 text-blue-600" />
+          <div className="p-6 bg-gradient-to-br from-purple-50 to-violet-100 rounded-2xl shadow-lg text-center border border-purple-200">
+            <Clock className="w-8 h-8 mx-auto mb-3 text-purple-600" />
             <div className="text-3xl font-bold text-gray-800">
               {results.timeTaken}s
             </div>
@@ -461,8 +633,8 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
         </div>
 
         {/* Detailed Results */}
-        <div className="p-6 bg-gray-50 rounded-2xl">
-          <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+        <div className="p-6 bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl shadow-lg border border-gray-200">
+          <h3 className="text-xl font-semibold mb-6 flex items-center gap-2 text-gray-800">
             <Star className="w-5 h-5 text-yellow-500" />
             Detailed Question Analysis ({quiz?.length || 0} Questions)
           </h3>
@@ -471,7 +643,7 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
               const { userAnswer, correctAnswer, isCorrect } = getAnswerData(i);
 
               return (
-                <div key={i} className={`p-4 border-2 rounded-lg transition-all duration-200 ${
+                <div key={i} className={`p-4 border-2 rounded-lg transition-all duration-200 shadow-sm ${
                   isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
                 }`}>
                   <div className="flex items-start gap-3">
@@ -488,17 +660,15 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
                         <div>
                           <span className="text-gray-600">Your answer: </span>
                           <span className={isCorrect ? "text-green-700 font-medium" : "text-red-700 font-medium"}>
-                            {userAnswer || "Not answered"}
+                            {userAnswer}
                           </span>
                         </div>
-                        {!isCorrect && correctAnswer && (
-                          <div>
-                            <span className="text-gray-600">Correct answer: </span>
-                            <span className="text-green-700 font-medium">
-                              {correctAnswer}
-                            </span>
-                          </div>
-                        )}
+                        <div>
+                          <span className="text-gray-600">Correct answer: </span>
+                          <span className="text-green-700 font-medium">
+                            {correctAnswer}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -512,7 +682,7 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
       {/* Action Buttons */}
       <button
         onClick={onNewQuiz}
-        className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-semibold text-lg flex items-center justify-center gap-3 transition-all duration-200 shadow-lg hover:shadow-xl"
+        className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-semibold text-lg flex items-center justify-center gap-3 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
       >
         <RotateCcw className="w-5 h-5" />
         Create New Quiz
