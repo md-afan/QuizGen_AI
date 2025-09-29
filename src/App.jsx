@@ -410,7 +410,7 @@ function App() {
               <div>
                 <h4 className="font-semibold mb-4">Support</h4>
                 <ul className="space-y-2 text-gray-400">
-                  <li><a href="https://mohd-affan.netlify.app/" className="hover:text-white transition-colors">Contact</a></li>
+                  <li><a href="https://md-afan.netlify.app/" className="hover:text-white transition-colors">Contact</a></li>
                   <li><a href={developer.github} target="_blank" rel="noreferrer" className="hover:text-white transition-colors">GitHub</a></li>
                 </ul>
               </div>
