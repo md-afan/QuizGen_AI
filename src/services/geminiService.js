@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_KEY = "AIzaSyD6w_XP-eye70GgfkXPjP2AdMHmc6w-CP8"; 
+const API_KEY = ""; 
 const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 
 export async function generateQuizFromText(docText, numQuestions = 10) {
