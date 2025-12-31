@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import { Upload, FileText, File, X, Loader, FileText as DocxIcon } from "lucide-react";
 import * as mammoth from 'mammoth';
-import { QuizCreationAd } from "./AdUnits";
 
 export default function DocumentUpload({ onTextExtracted }) {
   const [fileName, setFileName] = useState("");
@@ -277,11 +276,6 @@ export default function DocumentUpload({ onTextExtracted }) {
         Upload Document (.txt, .pdf, or .docx)
       </h2>
       
-      {/* Ad before upload area */}
-      <div className="mb-6">
-        <QuizCreationAd />
-      </div>
-      
       <div
         className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 ${
           isDragging 
@@ -369,11 +363,6 @@ export default function DocumentUpload({ onTextExtracted }) {
           </>
         )}
       </div>
-
-      {/* Ad after upload area */}
-      <div className="my-6">
-        <QuizCreationAd />
-      </div>
       
       {fileName && !isLoading && !error && (
         <div className={`mt-3 p-3 border rounded-lg ${getFileTypeColor()}`}>
@@ -416,11 +405,6 @@ export default function DocumentUpload({ onTextExtracted }) {
           </ul>
         </div>
       )}
-
-      {/* Ad at the bottom */}
-      <div className="mt-6">
-        <QuizCreationAd />
-      </div>
     </div>
   );
 }
