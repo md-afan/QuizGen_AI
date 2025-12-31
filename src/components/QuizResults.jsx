@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { CheckCircle2, XCircle, Clock, BarChart3, RotateCcw, Star, Download, FileText, Award, TrendingUp, Users, Calendar } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { ReportAd } from "./AdUnits";
 
 export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
   const resultsRef = useRef(null);
@@ -530,6 +531,9 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
           </button>
         </div>
         
+        {/* Ad after download buttons */}
+        <ReportAd />
+        
         {userData && (
           <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-100">
             <p className="text-sm text-gray-700 font-medium">
@@ -631,6 +635,9 @@ export default function QuizResults({ results, onNewQuiz, quiz, userData }) {
             <div className="text-sm text-gray-600 font-medium">Time Taken</div>
           </div>
         </div>
+
+        {/* Ad in the middle of results */}
+        <ReportAd />
 
         {/* Detailed Results */}
         <div className="p-6 bg-gradient-to-br from-gray-50 to-blue-50 rounded-2xl shadow-lg border border-gray-200">
