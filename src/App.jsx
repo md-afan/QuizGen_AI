@@ -24,6 +24,7 @@ import QuizPlayer from "./components/QuizPlayer.jsx";
 import QuizResults from "./components/QuizResults.jsx";
 import UserFormModal from "./components/UserFormModal";
 import ConfirmationModal from "./components/ConfirmationModal";
+import profile from'./assets/profile.png';
 
 /**
  * App.jsx
@@ -59,7 +60,7 @@ function App() {
   const developer = {
     name: "MD AFAN",
     role: "Full-Stack Developer | AI",
-    image: "https://media.licdn.com/dms/image/v2/D4E03AQEn1n9gWNmmIg/profile-displayphoto-scale_400_400/B4EZlXYUwTIQAk-/0/1758107619415?e=1761782400&v=beta&t=fOuysMiYsJu8t4lByc1UYil55PbNL1dGvqhTdZzfcQs",
+    image: profile,
     email: "mdafan00094@gmail.com",
     github: "https://github.com/md-afan",
     bio: "Building AI-powered learning tools and educational UIs. Passionate about accessible edtech and clean UI."
