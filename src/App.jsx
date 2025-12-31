@@ -24,6 +24,7 @@ import QuizPlayer from "./components/QuizPlayer.jsx";
 import QuizResults from "./components/QuizResults.jsx";
 import UserFormModal from "./components/UserFormModal";
 import ConfirmationModal from "./components/ConfirmationModal";
+import { HomepageAd } from "./components/AdUnits";
 import profile from'./assets/profile.png';
 
 /**
@@ -197,6 +198,9 @@ function App() {
                   </button>
                 </div>
 
+                {/* Ad in hero section */}
+                <HomepageAd />
+
                 {/* Updated Stats */}
                 <div className="flex items-center gap-8 pt-6">
                   <div className="text-center">
@@ -270,6 +274,11 @@ function App() {
           </div>
         </section>
 
+        {/* Ad after hero section */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <HomepageAd />
+        </div>
+
         {/* Updated Features Section */}
         <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-white/50">
           <div className="max-w-7xl mx-auto">
@@ -314,6 +323,11 @@ function App() {
                 title="Professional Analytics" 
                 description="Get detailed performance metrics, time tracking, and comprehensive results analysis."
               />
+            </div>
+
+            {/* Ad in features section */}
+            <div className="mt-12">
+              <HomepageAd />
             </div>
           </div>
         </section>
