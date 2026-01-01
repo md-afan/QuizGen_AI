@@ -1,5 +1,14 @@
 import { useState, useRef } from "react";
-import { Upload, FileText, File, X, Loader, FileText as DocxIcon } from "lucide-react";
+import { 
+  Upload, 
+  FileText, 
+  File, 
+  X, 
+  Loader, 
+  FileText as DocxIcon, 
+  Image as ImageIcon,
+  Zap 
+} from "lucide-react";
 import * as mammoth from 'mammoth';
 
 export default function DocumentUpload({ onTextExtracted }) {
@@ -9,20 +18,35 @@ export default function DocumentUpload({ onTextExtracted }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [preview, setPreview] = useState(null);
   const fileInputRef = useRef(null);
 
-  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB in bytes
+  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB in bytes
+  const MAX_IMAGE_SIZE = 6 * 1024 * 1024; // 6MB in bytes
 
   const isValidFileType = (file) => {
     const allowedTypes = [
       'text/plain', 
       'application/pdf', 
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/gif',
+      'image/webp'
     ];
-    const allowedExtensions = ['.txt', '.pdf', '.docx'];
+    const allowedExtensions = ['.txt', '.pdf', '.docx', '.png', '.jpg', '.jpeg', '.gif', '.webp'];
     const fileExtension = file.name.toLowerCase().slice((file.name.lastIndexOf(".") - 1 >>> 0) + 2);
     
     return allowedTypes.includes(file.type) || allowedExtensions.includes('.' + fileExtension);
+  };
+
+  const isImageFile = (file) => {
+    const imageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+    const fileExtension = file.name.toLowerCase().slice((file.name.lastIndexOf(".") - 1 >>> 0) + 2);
+    
+    return imageTypes.includes(file.type) || imageExtensions.includes('.' + fileExtension);
   };
 
   const extractTextFromDocx = async (file) => {
@@ -37,12 +61,10 @@ export default function DocumentUpload({ onTextExtracted }) {
 
   const extractTextFromPDF = async (file) => {
     try {
-      // Dynamic import to avoid including pdf-parse in initial bundle
       const pdfjsLib = await import('pdfjs-dist');
       
-      // Set the worker source correctly
       if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        const pdfjsVersion = '3.11.174'; // Use a specific version
+        const pdfjsVersion = '3.11.174';
         pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsVersion}/pdf.worker.min.js`;
       }
 
@@ -63,7 +85,6 @@ export default function DocumentUpload({ onTextExtracted }) {
             resolve(text.trim());
           } catch (parseError) {
             console.error('PDF.js parsing error:', parseError);
-            // Fallback: Try pdf-parse if PDF.js fails
             try {
               const PDFParse = await import('pdf-parse');
               const pdfParse = PDFParse.default || PDFParse;
@@ -87,10 +108,17 @@ export default function DocumentUpload({ onTextExtracted }) {
 
     setError("");
     setIsLoading(true);
+    setPreview(null);
 
-    // Check file size
-    if (file.size > MAX_FILE_SIZE) {
-      const errorMsg = `File size too large. Please upload a file smaller than 20MB. Your file: ${(file.size / (1024 * 1024)).toFixed(2)}MB`;
+    // Check if it's an image
+    const isImage = isImageFile(file);
+    
+    // Check file size based on type
+    const maxSize = isImage ? MAX_IMAGE_SIZE : MAX_FILE_SIZE;
+    const sizeLabel = isImage ? "6MB" : "25MB";
+    
+    if (file.size > maxSize) {
+      const errorMsg = `File size too large. ${isImage ? "Images" : "Files"} must be smaller than ${sizeLabel}. Your file: ${(file.size / (1024 * 1024)).toFixed(2)}MB`;
       setError(errorMsg);
       setIsLoading(false);
       return;
@@ -98,7 +126,7 @@ export default function DocumentUpload({ onTextExtracted }) {
 
     // Check file type
     if (!isValidFileType(file)) {
-      const errorMsg = "Please upload a valid TXT, PDF, or DOCX file.";
+      const errorMsg = `Please upload a valid ${isImage ? "image (PNG, JPG, JPEG, GIF, WEBP)" : "TXT, PDF, or DOCX file"}.`;
       setError(errorMsg);
       setIsLoading(false);
       return;
@@ -108,41 +136,45 @@ export default function DocumentUpload({ onTextExtracted }) {
       let textContent = "";
       let shouldSendAsFile = false;
 
-      // Handle different file types
-      if (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')) {
-        // TXT file - read as text
+      // Handle images
+      if (isImage) {
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setPreview(e.target.result);
+        };
+        reader.readAsDataURL(file);
+        
+        // Images are always sent as file to Gemini Vision
+        shouldSendAsFile = true;
+      }
+      // Handle text files
+      else if (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')) {
         textContent = await file.text();
         
-        // Validate text content
         if (!textContent || textContent.trim().length < 10) {
           throw new Error("The text file is too short. Please upload a file with at least 10 characters of text.");
         }
       } 
       else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
                file.name.toLowerCase().endsWith('.docx')) {
-        // DOCX file - extract text using mammoth
         textContent = await extractTextFromDocx(file);
         
-        // Validate extracted text
         if (!textContent || textContent.trim().length < 10) {
           throw new Error("The DOCX file appears to be empty or contains insufficient text.");
         }
       }
       else if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-        // PDF file - try to extract text first, then decide whether to send as file or text
         try {
           textContent = await extractTextFromPDF(file);
           
-          // If we successfully extracted sufficient text, send as text
           if (textContent && textContent.trim().length >= 10) {
             shouldSendAsFile = false;
           } else {
-            // If text extraction failed or insufficient text, send as file to Gemini
             shouldSendAsFile = true;
             console.warn("PDF text extraction limited. Sending file to Gemini for processing.");
           }
         } catch (pdfError) {
-          // If PDF text extraction fails completely, send as file to Gemini
           shouldSendAsFile = true;
           console.warn("PDF text extraction failed. Sending file to Gemini:", pdfError.message);
         }
@@ -154,7 +186,6 @@ export default function DocumentUpload({ onTextExtracted }) {
       setFileType(file.type);
 
       if (shouldSendAsFile) {
-        // For PDF files with poor text extraction, send as base64 to Gemini
         const base64String = await new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => {
@@ -175,10 +206,10 @@ export default function DocumentUpload({ onTextExtracted }) {
           fileType: file.type,
           fileSize: file.size,
           base64Data: base64String,
-          mimeType: file.type
+          mimeType: file.type,
+          isImage: isImage
         });
       } else {
-        // For TXT, DOCX, and PDFs with good text extraction, send as text
         onTextExtracted(textContent);
       }
       
@@ -220,6 +251,7 @@ export default function DocumentUpload({ onTextExtracted }) {
     setFileSize(0);
     setFileType("");
     setError("");
+    setPreview(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -234,6 +266,9 @@ export default function DocumentUpload({ onTextExtracted }) {
   };
 
   const getFileIcon = () => {
+    if (isImageFile({name: fileName, type: fileType})) {
+      return <ImageIcon className="w-12 h-12 text-pink-500" />;
+    }
     if (fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
       return <File className="w-12 h-12 text-red-500" />;
     }
@@ -245,6 +280,9 @@ export default function DocumentUpload({ onTextExtracted }) {
   };
 
   const getFileTypeText = () => {
+    if (isImageFile({name: fileName, type: fileType})) {
+      return "Image File";
+    }
     if (fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
       return "PDF Document";
     }
@@ -259,6 +297,9 @@ export default function DocumentUpload({ onTextExtracted }) {
   };
 
   const getFileTypeColor = () => {
+    if (isImageFile({name: fileName, type: fileType})) {
+      return "text-pink-600 bg-pink-50 border-pink-200";
+    }
     if (fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
       return "text-red-600 bg-red-50 border-red-200";
     }
@@ -273,7 +314,7 @@ export default function DocumentUpload({ onTextExtracted }) {
     <div>
       <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
         <Upload className="w-5 h-5 text-blue-600" />
-        Upload Document (.txt, .pdf, or .docx)
+        Upload Content (.txt, .pdf, .docx, .png, .jpg, .jpeg)
       </h2>
       
       <div
@@ -289,7 +330,7 @@ export default function DocumentUpload({ onTextExtracted }) {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".txt,.pdf,.docx"
+          accept=".txt,.pdf,.docx,.png,.jpg,.jpeg,.gif,.webp"
           onChange={handleFileChange}
           className="absolute opacity-0 w-0 h-0"
           id="file-upload"
@@ -299,12 +340,14 @@ export default function DocumentUpload({ onTextExtracted }) {
         {isLoading ? (
           <div className="flex flex-col items-center">
             <Loader className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-            <p className="text-gray-600">Processing document...</p>
+            <p className="text-gray-600">Processing {isImageFile({name: fileName, type: fileType}) ? "image" : "document"}...</p>
             <p className="text-sm text-gray-500 mt-1">
               {fileName.toLowerCase().endsWith('.docx') 
                 ? "Extracting text from Word document..." 
                 : fileName.toLowerCase().endsWith('.pdf')
                 ? "Analyzing PDF content..."
+                : isImageFile({name: fileName, type: fileType})
+                ? "Preparing image for AI Vision analysis..."
                 : "Reading file content..."}
             </p>
           </div>
@@ -330,9 +373,19 @@ export default function DocumentUpload({ onTextExtracted }) {
           </div>
         ) : fileName ? (
           <div className="flex flex-col items-center">
-            {getFileIcon()}
+            {preview ? (
+              <div className="mb-4">
+                <img 
+                  src={preview} 
+                  alt="Preview" 
+                  className="w-32 h-32 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
+                />
+              </div>
+            ) : (
+              getFileIcon()
+            )}
             <div className="mt-4 text-center">
-              <p className="font-semibold text-gray-800">{fileName}</p>
+              <p className="font-semibold text-gray-800 truncate max-w-xs">{fileName}</p>
               <p className="text-sm text-gray-600 mt-1">
                 {getFileTypeText()} • {(fileSize / (1024 * 1024)).toFixed(2)} MB
               </p>
@@ -353,12 +406,15 @@ export default function DocumentUpload({ onTextExtracted }) {
               <span className="text-gray-600"> or drag and drop</span>
             </label>
             <p className="text-sm text-gray-500 mt-2">
-              TXT, PDF, or DOCX files only (max 20MB)
+              Documents (25MB max) or Images (6MB max)
             </p>
-            <div className="mt-4 flex justify-center gap-4 text-xs text-gray-500">
+            <div className="mt-4 flex flex-wrap justify-center gap-2 text-xs text-gray-500">
               <span className="bg-gray-100 px-2 py-1 rounded">.txt</span>
               <span className="bg-gray-100 px-2 py-1 rounded">.pdf</span>
               <span className="bg-gray-100 px-2 py-1 rounded">.docx</span>
+              <span className="bg-gray-100 px-2 py-1 rounded">.png</span>
+              <span className="bg-gray-100 px-2 py-1 rounded">.jpg</span>
+              <span className="bg-gray-100 px-2 py-1 rounded">.jpeg</span>
             </div>
           </>
         )}
@@ -368,43 +424,64 @@ export default function DocumentUpload({ onTextExtracted }) {
         <div className={`mt-3 p-3 border rounded-lg ${getFileTypeColor()}`}>
           <div className="flex items-center gap-2">
             {getFileIcon()}
-            <span className="font-medium">{fileName}</span>
+            <div className="flex-1">
+              <span className="font-medium">{fileName}</span>
+              <p className="text-sm mt-1">
+                {(fileSize / (1024 * 1024)).toFixed(2)} MB • Ready for quiz generation
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {isImageFile({name: fileName, type: fileType}) 
+                  ? "Image will be processed by Gemini Vision AI"
+                  : fileName.toLowerCase().endsWith('.docx') 
+                  ? "Text extracted from Word document" 
+                  : fileName.toLowerCase().endsWith('.pdf')
+                  ? "PDF will be processed by Gemini AI"
+                  : "Text content ready for processing"}
+              </p>
+            </div>
           </div>
-          <p className="text-sm mt-1">
-            {(fileSize / (1024 * 1024)).toFixed(2)} MB • Ready for quiz generation
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            {fileName.toLowerCase().endsWith('.docx') 
-              ? "Text extracted from Word document" 
-              : fileName.toLowerCase().endsWith('.pdf')
-              ? "PDF will be processed by Gemini AI"
-              : "Text content ready for processing"}
-          </p>
         </div>
       )}
 
       {/* File Requirements */}
-      <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-        <h4 className="font-semibold text-blue-800 mb-2">File Requirements:</h4>
-        <ul className="text-sm text-blue-700 space-y-1">
-          <li>• Supported formats: TXT, PDF, DOCX</li>
-          <li>• Maximum file size: 20MB</li>
-          <li>• Minimum text content: 10 characters</li>
-          <li>• PDF files should have selectable text for best results</li>
-        </ul>
+      <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+        <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+          <File className="w-4 h-4" />
+          File Requirements:
+        </h4>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <h5 className="text-sm font-medium text-blue-700 mb-1">📄 Documents</h5>
+            <ul className="text-xs text-blue-600 space-y-1">
+              <li>• Formats: TXT, PDF, DOCX</li>
+              <li>• Maximum size: 25MB</li>
+              <li>• Minimum text: 10 characters</li>
+            </ul>
+          </div>
+          <div>
+            <h5 className="text-sm font-medium text-pink-700 mb-1">🖼️ Images</h5>
+            <ul className="text-xs text-pink-600 space-y-1">
+              <li>• Formats: PNG, JPG, JPEG, GIF, WEBP</li>
+              <li>• Maximum size: 6MB</li>
+              <li>• AI Vision processing</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
-      {/* PDF Troubleshooting */}
-      {error && error.includes('PDF') && (
-        <div className="mt-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <h4 className="font-semibold text-yellow-800 mb-2">PDF Tips:</h4>
-          <ul className="text-sm text-yellow-700 space-y-1">
-            <li>• Ensure the PDF has selectable text (not scanned images)</li>
-            <li>• Try converting the PDF to a text file if issues persist</li>
-            <li>• Simple PDFs with clear text work best</li>
-          </ul>
-        </div>
-      )}
+      {/* Tips for Best Results */}
+      <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+        <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+          <Zap className="w-4 h-4" />
+          Tips for Best Results:
+        </h4>
+        <ul className="text-xs text-green-700 space-y-1">
+          <li>• For documents: Use clear, well-structured text</li>
+          <li>• For images: Ensure text is legible and well-lit</li>
+          <li>• PDFs with OCR work best for text extraction</li>
+          <li>• Images with clear text yield better quiz questions</li>
+        </ul>
+      </div>
     </div>
   );
 }
