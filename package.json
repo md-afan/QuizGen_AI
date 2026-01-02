@@ -1,6 +1,6 @@
 {
   "name": "doc_to_quiz",
-  "homepage": "https://md-afan.github.io/QuizGen_AI/",
+  "homepage": "https://guizgenai.vercel.app/",
   "version": "0.0.0",
   "type": "module",
   "scripts": {

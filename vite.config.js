@@ -5,4 +5,13 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base:process.env.VITE_BASE_PATH || "/QuizGen_AI",
+   define: {
+    'process.env': {},
+    'global': {}
+  },
+  build: {
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+  }
 })
