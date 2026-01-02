@@ -1,10 +1,20 @@
 import axios from "axios";
 
+<<<<<<< HEAD
 const API_KEY = "."; 
+=======
+// Use environment variable for API key
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
+>>>>>>> 92ef2ce (vercel)
 const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
 
 export async function generateQuizFromText(docText, numQuestions = 10) {
   try {
+    // Check if API key is available
+    if (!API_KEY || API_KEY === "") {
+      throw new Error("API key not configured. Please check your environment variables.");
+    }
+
     let contents = [];
     let prompt = "";
 
@@ -84,11 +94,33 @@ export async function generateQuizFromText(docText, numQuestions = 10) {
   } catch (error) {
     console.error("Error generating quiz:", error);
     
+    // Handle specific API key errors
+    if (!API_KEY || API_KEY === "") {
+      throw new Error("API key is missing. Please add your Gemini API key to the .env file.");
+    }
+
     if (error.response?.data?.error) {
       const geminiError = error.response.data.error.message;
+      
+      // Handle API key invalid/expired
+      if (geminiError.includes("API key") || geminiError.includes("not valid") || geminiError.includes("invalid")) {
+        throw new Error("Invalid API key. Please check your Gemini API key in the .env file.");
+      }
+      
+      // Handle file processing errors
       if (geminiError.includes("file") || geminiError.includes("document")) {
         throw new Error("Gemini couldn't process the document. Please try a text file or paste the content directly.");
       }
+
+      // Handle quota exceeded
+      if (geminiError.includes("quota") || geminiError.includes("exceeded") || geminiError.includes("429")) {
+        throw new Error("API quota exceeded. Please try again later or check your Gemini API usage.");
+      }
+    }
+    
+    // Handle network errors
+    if (error.code === "NETWORK_ERROR" || error.code === "ECONNREFUSED") {
+      throw new Error("Network error. Please check your internet connection and try again.");
     }
     
     throw new Error("Failed to generate quiz. Please try again.");
@@ -205,4 +237,32 @@ function generateFallbackQuiz(numQuestions) {
     ],
     answer: "C"
   }));
+}
+
+// Add a function to validate API key
+export function validateApiKey() {
+  return API_KEY && API_KEY !== "" && API_KEY !== "AIzaSyBQ4Lsn6tMtqS0ZD6eOga_jdfghjkldoiufehw";
+}
+
+// Optional: Create a test function to verify API connection
+export async function testApiConnection() {
+  try {
+    if (!API_KEY) {
+      return { success: false, message: "API key not found" };
+    }
+
+    const response = await axios.post(BASE_URL, {
+      contents: [{ parts: [{ text: "Hello, are you working?" }] }],
+      generationConfig: { maxOutputTokens: 10 }
+    });
+
+    if (response.data.candidates) {
+      return { success: true, message: "API connection successful" };
+    } else {
+      return { success: false, message: "Invalid API response" };
+    }
+  } catch (error) {
+    console.error("API test error:", error);
+    return { success: false, message: error.message };
+  }
 }
