@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Sparkles, Target, BarChart3, Image as ImageIcon } from "lucide-react";
 import { generateQuizFromText } from "../services/geminiService";
 
+
 export default function QuizGenerator({ docText, onQuizReady, numQuestions }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

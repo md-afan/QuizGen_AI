@@ -1,16 +1,28 @@
 import axios from "axios";
 
-// Use environment variable for API key
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
-const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
+// Get API key from environment variable
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
+// Log for debugging (remove in production)
+if (!API_KEY) {
+  console.warn("VITE_GEMINI_API_KEY is not set in environment variables");
+}
+
+const BASE_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`;
+
+/**
+ * Generate quiz questions from text or document content
+ * @param {string|object} docText - Text content or file object
+ * @param {number} numQuestions - Number of questions to generate
+ * @returns {Promise<Array>} Array of quiz questions
+ */
 export async function generateQuizFromText(docText, numQuestions = 10) {
-  try {
-    // Check if API key is available
-    if (!API_KEY || API_KEY === "" || API_KEY === "AIzaSyBQ4Lsn6tMtqS0ZD6eOga_jdfghjkldoiufehw") {
-      throw new Error("API key not configured. Please add your Gemini API key to the .env file.");
-    }
+  // Check if API key is available
+  if (!API_KEY || API_KEY === "") {
+    throw new Error("API key is not configured. Please check your environment settings.");
+  }
 
+  try {
     let contents = [];
     let prompt = "";
 
@@ -49,6 +61,7 @@ export async function generateQuizFromText(docText, numQuestions = 10) {
       ];
     }
 
+    console.log("Sending request to Gemini API...");
     const response = await axios.post(BASE_URL, {
       contents: contents,
       generationConfig: {
@@ -77,11 +90,13 @@ export async function generateQuizFromText(docText, numQuestions = 10) {
         parsed.quiz = parsed.quiz.map((q, index) => ({
           question: q.question || `Question ${index + 1} about the content`,
           options: q.options || ["A) Option A", "B) Option B", "C) Option C", "D) Option D"],
-          answer: q.answer || "A"
+          answer: q.answer || "A",
+          correctAnswer: q.correctAnswer || q.answer || "A" // For compatibility
         }));
       }
     } catch (err) {
       console.error("JSON parse error:", err);
+      console.error("Raw response:", textResponse);
       // Fallback questions
       parsed.quiz = generateFallbackQuiz(numQuestions);
     }
@@ -90,6 +105,18 @@ export async function generateQuizFromText(docText, numQuestions = 10) {
   } catch (error) {
     console.error("Error generating quiz:", error);
     
+    // Check for specific API errors
+    if (error.response?.status === 400) {
+      if (error.response?.data?.error?.message?.includes("API_KEY_INVALID")) {
+        throw new Error("Invalid API key. Please check your Google Gemini API key configuration.");
+      }
+      throw new Error("Invalid request to Gemini API. Please try with different content.");
+    }
+    
+    if (error.response?.status === 429) {
+      throw new Error("API rate limit exceeded. Please wait a moment and try again.");
+    }
+    
     if (error.response?.data?.error) {
       const geminiError = error.response.data.error.message;
       if (geminiError.includes("file") || geminiError.includes("document")) {
@@ -97,11 +124,17 @@ export async function generateQuizFromText(docText, numQuestions = 10) {
       }
     }
     
+    if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+      throw new Error("Network error. Please check your internet connection and try again.");
+    }
+    
     throw new Error("Failed to generate quiz. Please try again.");
   }
 }
 
-// Helper function to parse structured text input
+/**
+ * Parse structured text input with topic, type, difficulty markers
+ */
 function parseStructuredText(text) {
   const lines = text.split('\n');
   const topicMatch = text.match(/TOPIC:\s*(.+)/i);
@@ -120,7 +153,9 @@ function parseStructuredText(text) {
   return null;
 }
 
-// Generate prompt for structured input
+/**
+ * Generate prompt for structured input
+ */
 function generateStructuredPrompt(data, numQuestions) {
   const { topic, quizType, difficulty, content } = data;
   
@@ -158,7 +193,9 @@ RESPONSE FORMAT (JSON only):
 Ensure questions are directly based on the provided content and appropriate for ${difficulty} difficulty.`;
 }
 
-// Generate prompt for basic text input
+/**
+ * Generate prompt for basic text input
+ */
 function generateBasicPrompt(text, numQuestions) {
   return `Create ${numQuestions} multiple-choice questions based on the following text. The questions should test comprehension of key concepts, facts, and details.
 
@@ -177,7 +214,9 @@ Generate ${numQuestions} questions with 4 options each. Format as JSON:
 }`;
 }
 
-// Generate prompt for file uploads
+/**
+ * Generate prompt for file uploads
+ */
 function generateFilePrompt(numQuestions) {
   return `Analyze this document and create ${numQuestions} multiple-choice questions that test understanding of the key content.
 
@@ -199,16 +238,45 @@ Create ${numQuestions} questions with 4 options each. Format as JSON:
 }`;
 }
 
-// Fallback quiz generator
+/**
+ * Fallback quiz generator if API fails
+ */
 function generateFallbackQuiz(numQuestions) {
+  const topics = [
+    "Artificial Intelligence",
+    "Machine Learning",
+    "Web Development",
+    "Data Science",
+    "Computer Programming"
+  ];
+  
+  const selectedTopic = topics[Math.floor(Math.random() * topics.length)];
+  
   return Array.from({ length: numQuestions }, (_, i) => ({
-    question: `Question ${i + 1} based on the provided content`,
+    question: `Question ${i + 1}: What is a key aspect of ${selectedTopic}?`,
     options: [
-      "A) Key concept from the content",
-      "B) Related information", 
-      "C) Correct detail from the content",
-      "D) Additional aspect"
+      "A) Understanding algorithms",
+      "B) Data analysis techniques", 
+      "C) Problem-solving methods",
+      "D) All of the above"
     ],
-    answer: "C"
+    answer: "D",
+    correctAnswer: "D",
+    note: "This is a fallback question. Please check your API configuration."
   }));
+}
+
+/**
+ * Optional: Validate API key format
+ */
+export function validateApiKey() {
+  if (!API_KEY) {
+    return { valid: false, message: "API key is not set in environment variables" };
+  }
+  
+  if (API_KEY.startsWith("AIza")) {
+    return { valid: true, message: "API key format appears valid" };
+  }
+  
+  return { valid: false, message: "API key format is invalid" };
 }
